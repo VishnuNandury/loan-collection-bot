@@ -27,6 +27,24 @@ load_dotenv(override=True)
 pcs_map: Dict[str, SmallWebRTCConnection] = {}
 
 
+def get_ice_servers():
+    """Build ICE server list from env vars. Includes TURN if configured."""
+    servers = ["stun:stun.l.google.com:19302"]
+    turn_url = os.getenv("TURN_URL")
+    turn_username = os.getenv("TURN_USERNAME")
+    turn_credential = os.getenv("TURN_CREDENTIAL")
+    if turn_url and turn_username and turn_credential:
+        from aiortc import RTCIceServer
+        servers.append(
+            RTCIceServer(
+                urls=turn_url,
+                username=turn_username,
+                credential=turn_credential,
+            )
+        )
+    return servers
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
@@ -71,7 +89,7 @@ async def webrtc_offer(request: Request):
 
     # New connection
     connection = SmallWebRTCConnection(
-        ice_servers=["stun:stun.l.google.com:19302"]
+        ice_servers=get_ice_servers()
     )
 
     @connection.event_handler("on_closed")
@@ -112,6 +130,22 @@ async def webrtc_disconnect(request: Request):
     return JSONResponse({"status": "not_found"}, status_code=404)
 
 
+@app.get("/api/ice-servers")
+async def ice_servers():
+    """Return ICE server config for the browser client."""
+    servers = [{"urls": "stun:stun.l.google.com:19302"}]
+    turn_url = os.getenv("TURN_URL")
+    turn_username = os.getenv("TURN_USERNAME")
+    turn_credential = os.getenv("TURN_CREDENTIAL")
+    if turn_url and turn_username and turn_credential:
+        servers.append({
+            "urls": turn_url,
+            "username": turn_username,
+            "credential": turn_credential,
+        })
+    return servers
+
+
 @app.get("/api/health")
 async def health():
     """Health check endpoint."""
@@ -120,6 +154,7 @@ async def health():
         "active_connections": len(pcs_map),
         "google_api": "configured" if os.getenv("GOOGLE_API_KEY") else "missing",
         "deepgram_api": "configured" if os.getenv("DEEPGRAM_API_KEY") else "missing",
+        "turn": "configured" if os.getenv("TURN_URL") else "missing",
     }
 
 

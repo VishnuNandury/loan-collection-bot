@@ -1,0 +1,15 @@
+# PipeCat core + integrations
+pipecat-ai[google,deepgram,silero,webrtc]>=0.0.101
+
+# Web framework
+fastapi>=0.115.6,<0.128.0
+uvicorn[standard]>=0.24.0
+
+# Environment management
+python-dotenv>=1.0.0
+
+# Edge TTS (free, no API key)
+edge-tts>=7.0.0
+
+# Async support
+aiohttp>=3.9.0

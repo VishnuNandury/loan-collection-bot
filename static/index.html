@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickFinance - Loan Collection Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #7c83ff;
+            margin-bottom: 8px;
+        }
+
+        .title {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 36px;
+        }
+
+        .avatar-ring {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: rgba(124, 131, 255, 0.1);
+            border: 3px solid rgba(124, 131, 255, 0.3);
+            transition: all 0.4s ease;
+        }
+
+        .avatar-ring.active {
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+            animation: pulse-ring 2s ease-in-out infinite;
+        }
+
+        .avatar-ring.connecting {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+            animation: pulse-ring 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(124, 131, 255, 0.3); }
+            50% { box-shadow: 0 0 0 15px rgba(124, 131, 255, 0); }
+        }
+
+        .avatar-ring.active {
+            animation-name: pulse-active;
+        }
+
+        @keyframes pulse-active {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.3); }
+            50% { box-shadow: 0 0 0 15px rgba(74, 222, 128, 0); }
+        }
+
+        .avatar-icon {
+            font-size: 56px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6b7280;
+        }
+
+        .status-dot.ready { background: #7c83ff; }
+        .status-dot.active { background: #4ade80; animation: blink 1.2s ease-in-out infinite; }
+        .status-dot.connecting { background: #fbbf24; animation: blink 0.6s ease-in-out infinite; }
+        .status-dot.error { background: #f87171; }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .call-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .call-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .call-btn {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .call-btn.start-deepgram {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: #fff;
+            box-shadow: 0 8px 30px rgba(74, 222, 128, 0.35);
+        }
+
+        .call-btn.start-deepgram:hover {
+            transform: scale(1.08);
+            box-shadow: 0 10px 40px rgba(74, 222, 128, 0.5);
+        }
+
+        .call-btn.start-edge {
+            background: linear-gradient(135deg, #818cf8, #6366f1);
+            color: #fff;
+            box-shadow: 0 8px 30px rgba(129, 140, 248, 0.35);
+        }
+
+        .call-btn.start-edge:hover {
+            transform: scale(1.08);
+            box-shadow: 0 10px 40px rgba(129, 140, 248, 0.5);
+        }
+
+        .call-btn.end {
+            background: linear-gradient(135deg, #f87171, #ef4444);
+            color: #fff;
+            box-shadow: 0 8px 30px rgba(248, 113, 113, 0.35);
+        }
+
+        .call-btn.end:hover {
+            transform: scale(1.08);
+            box-shadow: 0 10px 40px rgba(248, 113, 113, 0.5);
+        }
+
+        .call-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .call-btn-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+        }
+
+        .timer {
+            font-size: 36px;
+            font-weight: 300;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            display: none;
+        }
+
+        .timer.visible { display: block; }
+
+        .transcript-box {
+            margin-top: 24px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 16px;
+            padding: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 13px;
+            line-height: 1.6;
+            display: none;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .transcript-box.visible { display: block; }
+
+        .transcript-box .line {
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 8px;
+        }
+
+        .transcript-box .agent {
+            background: rgba(124, 131, 255, 0.12);
+            color: #c4c7ff;
+        }
+
+        .transcript-box .user {
+            background: rgba(74, 222, 128, 0.1);
+            color: #a7f3d0;
+        }
+
+        .transcript-box .label {
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 6px;
+        }
+
+        .lang-info {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(124, 131, 255, 0.08);
+            border: 1px solid rgba(124, 131, 255, 0.15);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .lang-tags {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .lang-tag {
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(124, 131, 255, 0.15);
+            font-size: 11px;
+            font-weight: 600;
+            color: #a5b4fc;
+        }
+
+        .visualizer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            height: 30px;
+            margin-bottom: 16px;
+            visibility: hidden;
+        }
+
+        .visualizer.active { visibility: visible; }
+
+        .visualizer .bar {
+            width: 4px;
+            height: 6px;
+            background: #4ade80;
+            border-radius: 2px;
+            animation: sound-wave 0.8s ease-in-out infinite;
+        }
+
+        .visualizer .bar:nth-child(1) { animation-delay: 0s; }
+        .visualizer .bar:nth-child(2) { animation-delay: 0.1s; }
+        .visualizer .bar:nth-child(3) { animation-delay: 0.2s; }
+        .visualizer .bar:nth-child(4) { animation-delay: 0.3s; }
+        .visualizer .bar:nth-child(5) { animation-delay: 0.4s; }
+        .visualizer .bar:nth-child(6) { animation-delay: 0.3s; }
+        .visualizer .bar:nth-child(7) { animation-delay: 0.2s; }
+
+        @keyframes sound-wave {
+            0%, 100% { height: 6px; }
+            50% { height: 26px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">QuickFinance Ltd.</div>
+            <div class="title">Loan Collection Agent</div>
+            <div class="subtitle">AI-Powered Voice Assistant</div>
+
+            <div class="avatar-ring" id="avatarRing">
+                <span class="avatar-icon">🎧</span>
+            </div>
+
+            <div class="visualizer" id="visualizer">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+
+            <div class="status-badge" id="statusBadge">
+                <span class="status-dot ready" id="statusDot"></span>
+                <span id="statusText">Ready to connect</span>
+            </div>
+
+            <div class="timer" id="timer">00:00</div>
+
+            <div class="call-buttons" id="callButtons">
+                <div class="call-group">
+                    <button class="call-btn start-deepgram" id="btnDeepgram" onclick="startCall('deepgram')">📞</button>
+                    <span class="call-btn-label">Deepgram</span>
+                </div>
+                <div class="call-group">
+                    <button class="call-btn start-edge" id="btnEdge" onclick="startCall('edge')">📞</button>
+                    <span class="call-btn-label">Edge TTS</span>
+                </div>
+            </div>
+            <button class="call-btn end" id="btnEnd" onclick="endCall()" style="display:none; margin: 0 auto;">📵</button>
+            <div class="btn-label" id="btnLabel">Choose a TTS engine to start</div>
+
+            <div class="transcript-box" id="transcript"></div>
+
+            <div class="lang-info">
+                Supports multilingual conversation
+                <div class="lang-tags">
+                    <span class="lang-tag">Hindi</span>
+                    <span class="lang-tag">English</span>
+                    <span class="lang-tag">Hinglish</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pc = null;           // RTCPeerConnection
+        let pcId = null;         // Connection ID from server
+        let isConnected = false;
+        let timerInterval = null;
+        let seconds = 0;
+
+        const btnDeepgram = document.getElementById('btnDeepgram');
+        const btnEdge = document.getElementById('btnEdge');
+        const btnEnd = document.getElementById('btnEnd');
+        const callButtons = document.getElementById('callButtons');
+        const btnLabel = document.getElementById('btnLabel');
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
+        const avatarRing = document.getElementById('avatarRing');
+        const timerEl = document.getElementById('timer');
+        const visualizer = document.getElementById('visualizer');
+        const transcriptBox = document.getElementById('transcript');
+
+        function setStatus(state, text) {
+            statusText.textContent = text;
+            statusDot.className = 'status-dot ' + state;
+            avatarRing.className = 'avatar-ring ' + state;
+        }
+
+        function startTimer() {
+            seconds = 0;
+            timerEl.classList.add('visible');
+            timerInterval = setInterval(() => {
+                seconds++;
+                const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+                const s = String(seconds % 60).padStart(2, '0');
+                timerEl.textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerEl.classList.remove('visible');
+        }
+
+        async function startCall(ttsType) {
+            try {
+                btnDeepgram.disabled = true;
+                btnEdge.disabled = true;
+                setStatus('connecting', 'Connecting (' + ttsType + ')...');
+                btnLabel.textContent = 'Connecting...';
+
+                // Get user's microphone
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 16000
+                    }
+                });
+
+                // Create WebRTC peer connection
+                pc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+
+                // Add audio track
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+                // Handle incoming audio from the agent
+                const audioEl = new Audio();
+                audioEl.autoplay = true;
+                pc.ontrack = (event) => {
+                    audioEl.srcObject = event.streams[0];
+                };
+
+                pc.oniceconnectionstatechange = () => {
+                    if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+                        endCall();
+                    }
+                };
+
+                // Create and send offer
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                // Wait for ICE gathering to complete
+                await new Promise((resolve) => {
+                    if (pc.iceGatheringState === 'complete') {
+                        resolve();
+                    } else {
+                        pc.onicegatheringstatechange = () => {
+                            if (pc.iceGatheringState === 'complete') resolve();
+                        };
+                        // Timeout after 3 seconds
+                        setTimeout(resolve, 3000);
+                    }
+                });
+
+                // Send offer to server
+                const response = await fetch('/api/offer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sdp: pc.localDescription.sdp,
+                        type: pc.localDescription.type,
+                        pc_id: pcId,
+                        tts_type: ttsType,
+                    }),
+                });
+
+                if (!response.ok) throw new Error('Server error: ' + response.status);
+
+                const data = await response.json();
+                pcId = data.pc_id;
+
+                // Set remote description
+                await pc.setRemoteDescription({
+                    type: data.type || 'answer',
+                    sdp: data.sdp,
+                });
+
+                isConnected = true;
+                setStatus('active', 'Call in progress (' + ttsType + ')');
+                callButtons.style.display = 'none';
+                btnEnd.style.display = 'flex';
+                btnLabel.textContent = 'Tap to end call';
+                visualizer.classList.add('active');
+                transcriptBox.classList.add('visible');
+                startTimer();
+
+            } catch (err) {
+                console.error('Call failed:', err);
+                setStatus('error', 'Connection failed - check console');
+                btnDeepgram.disabled = false;
+                btnEdge.disabled = false;
+                btnLabel.textContent = 'Tap to retry';
+            }
+        }
+
+        async function endCall() {
+            if (!isConnected && !pc) return;
+
+            try {
+                // Notify server
+                if (pcId) {
+                    await fetch('/api/disconnect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pc_id: pcId }),
+                    });
+                }
+            } catch (e) {
+                console.warn('Disconnect notify failed:', e);
+            }
+
+            // Cleanup WebRTC
+            if (pc) {
+                pc.getSenders().forEach(sender => {
+                    if (sender.track) sender.track.stop();
+                });
+                pc.close();
+                pc = null;
+            }
+
+            pcId = null;
+            isConnected = false;
+            stopTimer();
+
+            setStatus('ready', 'Call ended');
+            callButtons.style.display = 'flex';
+            btnEnd.style.display = 'none';
+            btnDeepgram.disabled = false;
+            btnEdge.disabled = false;
+            btnLabel.textContent = 'Choose a TTS engine to start';
+            visualizer.classList.remove('active');
+        }
+
+        // Check server health on load
+        fetch('/api/health')
+            .then(r => r.json())
+            .then(data => {
+                if (data.google_api === 'missing' || data.deepgram_api === 'missing') {
+                    setStatus('error', 'API keys not configured - check .env');
+                    btnLabel.textContent = 'Configure API keys first';
+                    callBtn.disabled = true;
+                }
+            })
+            .catch(() => {
+                setStatus('error', 'Server not reachable');
+            });
+    </script>
+</body>
+</html>

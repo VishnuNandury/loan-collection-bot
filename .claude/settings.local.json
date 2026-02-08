@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" \"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\server.py\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"import pipecat; print\\(pipecat.__version__\\)\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\pip.exe\" show pipecat-ai)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\pip.exe\" list)",
+      "Bash(findstr:*)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\":*)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\pip.exe\" show:*)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\pip.exe\" uninstall pipecat -y)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection; print\\(''SmallWebRTCConnection imported successfully''\\)\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"import pipecat.transports; print\\(pipecat.transports.__file__\\); import os; print\\(os.listdir\\(os.path.dirname\\(pipecat.transports.__file__\\)\\)\\)\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c:*)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"import os; base = r''C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Lib\\\\site-packages\\\\pipecat\\\\services\\\\google''; print\\(os.listdir\\(base\\)\\)\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"import os; base = r''C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Lib\\\\site-packages\\\\pipecat\\\\services\\\\deepgram''; print\\(os.listdir\\(base\\)\\)\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\pip.exe\" index versions pipecat-ai)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\pip.exe\" install \"pipecat-ai[google,deepgram,silero,smallwebrtc]>=0.0.101\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection; print\\(''OK''\\)\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"from pipecat.services.google.llm import GoogleLLMService; print\\(''GoogleLLMService OK''\\)\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"from pipecat.services.deepgram.stt import DeepgramSTTService; print\\(''DeepgramSTTService OK''\\)\")",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\pip.exe\" install \"pipecat-ai[webrtc]\")",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:tts.travisvn.com)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:www.videosdk.live)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\pip.exe\" install edge-tts)",
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"import sys; sys.path.insert\\(0, r''C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat''\\); from edge_tts_service import EdgeTTSService; print\\(''EdgeTTSService imported OK''\\)\")"
+    ]
+  }
+}

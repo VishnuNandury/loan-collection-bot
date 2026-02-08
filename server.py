@@ -1,0 +1,141 @@
+"""
+Loan Collection Agent - FastAPI Server
+=======================================
+Serves the WebRTC frontend and handles signaling for voice calls.
+Run with: python server.py
+"""
+
+import os
+import argparse
+from contextlib import asynccontextmanager
+from typing import Dict
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.background import BackgroundTask
+from loguru import logger
+
+from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
+
+from bot import run_bot
+
+load_dotenv(override=True)
+
+# Track active peer connections
+pcs_map: Dict[str, SmallWebRTCConnection] = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    # Cleanup all connections on shutdown
+    for pc_id, conn in pcs_map.items():
+        await conn.disconnect()
+    pcs_map.clear()
+
+
+app = FastAPI(lifespan=lifespan)
+
+# Serve static files (frontend)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    """Serve the main frontend page."""
+    with open(os.path.join("static", "index.html"), "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
+@app.post("/api/offer")
+async def webrtc_offer(request: Request):
+    """Handle WebRTC SDP offer from the browser client."""
+    body = await request.json()
+    sdp = body.get("sdp")
+    sdp_type = body.get("type", "offer")
+    pc_id = body.get("pc_id")
+    tts_type = body.get("tts_type", "deepgram")
+
+    if not sdp:
+        raise HTTPException(status_code=400, detail="Missing SDP offer")
+
+    # Reuse existing connection (renegotiation)
+    if pc_id and pc_id in pcs_map:
+        logger.info(f"Renegotiating connection: {pc_id}")
+        connection = pcs_map[pc_id]
+        await connection.renegotiate(sdp=sdp, type=sdp_type)
+        answer = connection.get_answer()
+        return JSONResponse({"sdp": answer["sdp"], "pc_id": pc_id, "type": "answer"})
+
+    # New connection
+    connection = SmallWebRTCConnection(
+        ice_servers=["stun:stun.l.google.com:19302"]
+    )
+
+    @connection.event_handler("on_closed")
+    async def on_closed(connection):
+        cid = connection.pc_id
+        if cid in pcs_map:
+            del pcs_map[cid]
+            logger.info(f"Connection closed and removed: {cid}")
+
+    await connection.initialize(sdp=sdp, type=sdp_type)
+    answer = connection.get_answer()
+    pc_id = connection.pc_id
+    pcs_map[pc_id] = connection
+
+    logger.info(f"New connection: {pc_id}")
+
+    # Start the bot pipeline in the background
+    task = BackgroundTask(run_bot, connection, tts_type)
+
+    return JSONResponse(
+        {"sdp": answer["sdp"], "pc_id": pc_id, "type": "answer"},
+        background=task,
+    )
+
+
+@app.post("/api/disconnect")
+async def webrtc_disconnect(request: Request):
+    """Handle client disconnect."""
+    body = await request.json()
+    pc_id = body.get("pc_id")
+
+    if pc_id and pc_id in pcs_map:
+        connection = pcs_map.pop(pc_id)
+        await connection.disconnect()
+        logger.info(f"Disconnected: {pc_id}")
+        return JSONResponse({"status": "disconnected"})
+
+    return JSONResponse({"status": "not_found"}, status_code=404)
+
+
+@app.get("/api/health")
+async def health():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "active_connections": len(pcs_map),
+        "google_api": "configured" if os.getenv("GOOGLE_API_KEY") else "missing",
+        "deepgram_api": "configured" if os.getenv("DEEPGRAM_API_KEY") else "missing",
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    parser = argparse.ArgumentParser(description="Loan Collection Agent Server")
+    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8080")), help="Port to listen on")
+    args = parser.parse_args()
+
+    is_production = os.getenv("RENDER") or os.getenv("AWS_EXECUTION_ENV")
+
+    print(f"\n{'='*60}")
+    print(f"  Loan Collection Agent - QuickFinance Ltd.")
+    print(f"  Server starting at http://localhost:{args.port}")
+    print(f"{'='*60}\n")
+
+    uvicorn.run("server:app", host=args.host, port=args.port, reload=not is_production)

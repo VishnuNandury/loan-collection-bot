@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: loan-collection-agent
+    runtime: docker
+    plan: starter
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false

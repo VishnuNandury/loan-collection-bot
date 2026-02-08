@@ -379,6 +379,8 @@
 
     <script>
         let pc = null;           // RTCPeerConnection
+        let dc = null;           // Data channel
+        let pingInterval = null; // Keep-alive ping interval
         let pcId = null;         // Connection ID from server
         let isConnected = false;
         let timerInterval = null;
@@ -441,6 +443,36 @@
                 // Create WebRTC peer connection
                 pc = new RTCPeerConnection({ iceServers });
 
+                // Create data channel BEFORE creating offer (required by pipecat SmallWebRTC)
+                dc = pc.createDataChannel('pipecat', { ordered: true });
+                dc.onopen = () => {
+                    console.log('Data channel open - starting pings');
+                    // Send keep-alive pings every 1 second (server expects within 3s)
+                    pingInterval = setInterval(() => {
+                        if (dc && dc.readyState === 'open') {
+                            dc.send('ping' + Date.now());
+                        }
+                    }, 1000);
+                };
+                dc.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        // Handle renegotiation requests from server
+                        if (msg.type === 'signalling' && msg.message && msg.message.type === 'renegotiate') {
+                            handleRenegotiation(ttsType);
+                        } else if (msg.type === 'signalling' && msg.message && msg.message.type === 'peerLeft') {
+                            endCall();
+                        }
+                    } catch (e) {
+                        // Non-JSON message, ignore
+                    }
+                };
+                dc.onclose = () => {
+                    console.log('Data channel closed');
+                    clearInterval(pingInterval);
+                    pingInterval = null;
+                };
+
                 // Add audio track
                 stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
@@ -452,6 +484,7 @@
                 };
 
                 pc.oniceconnectionstatechange = () => {
+                    console.log('ICE state:', pc.iceConnectionState);
                     if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
                         endCall();
                     }
@@ -469,8 +502,7 @@
                         pc.onicegatheringstatechange = () => {
                             if (pc.iceGatheringState === 'complete') resolve();
                         };
-                        // Timeout after 3 seconds
-                        setTimeout(resolve, 3000);
+                        setTimeout(resolve, 5000);
                     }
                 });
 
@@ -515,8 +547,58 @@
             }
         }
 
+        async function handleRenegotiation(ttsType) {
+            if (!pc || !pcId) return;
+            try {
+                console.log('Renegotiating...');
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                await new Promise((resolve) => {
+                    if (pc.iceGatheringState === 'complete') resolve();
+                    else {
+                        pc.onicegatheringstatechange = () => {
+                            if (pc.iceGatheringState === 'complete') resolve();
+                        };
+                        setTimeout(resolve, 5000);
+                    }
+                });
+
+                const response = await fetch('/api/offer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sdp: pc.localDescription.sdp,
+                        type: pc.localDescription.type,
+                        pc_id: pcId,
+                        tts_type: ttsType,
+                    }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
+                    console.log('Renegotiation complete');
+                }
+            } catch (e) {
+                console.warn('Renegotiation failed:', e);
+            }
+        }
+
         async function endCall() {
             if (!isConnected && !pc) return;
+
+            // Stop pings
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+            }
+
+            // Close data channel
+            if (dc) {
+                dc.close();
+                dc = null;
+            }
 
             try {
                 // Notify server

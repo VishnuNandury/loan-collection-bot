@@ -28,20 +28,28 @@ pcs_map: Dict[str, SmallWebRTCConnection] = {}
 
 
 def get_ice_servers():
-    """Build ICE server list from env vars. Includes TURN if configured."""
-    servers = ["stun:stun.l.google.com:19302"]
+    """Build ICE server list from env vars. Uses RTCIceServer objects throughout."""
+    from aiortc import RTCIceServer
+
+    servers = [RTCIceServer(urls="stun:stun.l.google.com:19302")]
+
     turn_url = os.getenv("TURN_URL")
     turn_username = os.getenv("TURN_USERNAME")
     turn_credential = os.getenv("TURN_CREDENTIAL")
     if turn_url and turn_username and turn_credential:
-        from aiortc import RTCIceServer
+        # Support multiple TURN URLs (comma-separated)
+        turn_urls = [u.strip() for u in turn_url.split(",")]
         servers.append(
             RTCIceServer(
-                urls=turn_url,
+                urls=turn_urls,
                 username=turn_username,
                 credential=turn_credential,
             )
         )
+        logger.info(f"TURN configured: {turn_urls}")
+    else:
+        logger.warning("TURN not configured - WebRTC may fail behind NAT/cloud")
+
     return servers
 
 
@@ -133,13 +141,14 @@ async def webrtc_disconnect(request: Request):
 @app.get("/api/ice-servers")
 async def ice_servers():
     """Return ICE server config for the browser client."""
-    servers = [{"urls": "stun:stun.l.google.com:19302"}]
+    servers = [{"urls": ["stun:stun.l.google.com:19302"]}]
     turn_url = os.getenv("TURN_URL")
     turn_username = os.getenv("TURN_USERNAME")
     turn_credential = os.getenv("TURN_CREDENTIAL")
     if turn_url and turn_username and turn_credential:
+        turn_urls = [u.strip() for u in turn_url.split(",")]
         servers.append({
-            "urls": turn_url,
+            "urls": turn_urls,
             "username": turn_username,
             "credential": turn_credential,
         })

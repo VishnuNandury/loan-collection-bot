@@ -29,7 +29,10 @@
       "WebFetch(domain:gist.github.com)",
       "WebFetch(domain:www.videosdk.live)",
       "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\pip.exe\" install edge-tts)",
-      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"import sys; sys.path.insert\\(0, r''C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat''\\); from edge_tts_service import EdgeTTSService; print\\(''EdgeTTSService imported OK''\\)\")"
+      "Bash(\"C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat\\\\venv\\\\Scripts\\\\python.exe\" -c \"import sys; sys.path.insert\\(0, r''C:\\\\clu_web\\\\CONVERSE_BUSINESS\\\\Agent_pipecat''\\); from edge_tts_service import EdgeTTSService; print\\(''EdgeTTSService imported OK''\\)\")",
+      "WebFetch(domain:docs.pipecat.ai)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:www.jsdelivr.com)"
     ]
   }
 }

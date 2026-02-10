@@ -1,6 +1,9 @@
 # PipeCat core + integrations
 pipecat-ai[google,deepgram,silero,webrtc]>=0.0.101
 
+# Pipecat Flows (structured conversation flows)
+pipecat-ai-flows
+
 # Web framework
 fastapi>=0.115.6,<0.128.0
 uvicorn[standard]>=0.24.0

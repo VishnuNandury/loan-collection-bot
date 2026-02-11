@@ -19,7 +19,7 @@ from loguru import logger
 
 from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
 
-from bot import run_bot
+from bot import run_bot, session_data, FLOW_NODES
 
 load_dotenv(override=True)
 
@@ -106,6 +106,8 @@ async def webrtc_offer(request: Request):
         if cid in pcs_map:
             del pcs_map[cid]
             logger.info(f"Connection closed and removed: {cid}")
+        # Clean up session data
+        session_data.pop(cid, None)
 
     await connection.initialize(sdp=sdp, type=sdp_type)
     answer = connection.get_answer()
@@ -132,10 +134,62 @@ async def webrtc_disconnect(request: Request):
     if pc_id and pc_id in pcs_map:
         connection = pcs_map.pop(pc_id)
         await connection.disconnect()
+        session_data.pop(pc_id, None)
         logger.info(f"Disconnected: {pc_id}")
         return JSONResponse({"status": "disconnected"})
 
     return JSONResponse({"status": "not_found"}, status_code=404)
+
+
+@app.get("/api/session-data/{pc_id}")
+async def get_session_data(pc_id: str):
+    """Return live session data for the dashboard — flow state, transcript, metrics."""
+    data = session_data.get(pc_id)
+    if not data:
+        return JSONResponse({"current_node": "", "nodes": FLOW_NODES, "transcript": [], "metrics": {}})
+
+    # Extract transcript from the live context messages
+    transcript = []
+    ctx = data.get("_context")
+    if ctx:
+        try:
+            messages = ctx.messages if hasattr(ctx, "messages") else []
+            for msg in messages:
+                role = msg.get("role", "")
+                content = msg.get("content", "")
+                if role in ("user", "assistant") and content:
+                    transcript.append({"role": role, "text": content})
+        except Exception:
+            pass
+
+    # Estimate token usage from context messages
+    all_msgs = []
+    if ctx:
+        try:
+            all_msgs = ctx.messages if hasattr(ctx, "messages") else []
+        except Exception:
+            pass
+    total_chars = sum(len(m.get("content", "")) for m in all_msgs)
+    user_msgs = sum(1 for m in all_msgs if m.get("role") == "user")
+    assistant_msgs = sum(1 for m in all_msgs if m.get("role") == "assistant")
+    system_msgs = sum(1 for m in all_msgs if m.get("role") == "system")
+
+    return JSONResponse({
+        "current_node": data.get("current_node", ""),
+        "nodes": FLOW_NODES,
+        "transcript": transcript,
+        "tts_type": data.get("tts_type", "deepgram"),
+        "metrics": {
+            "est_tokens": total_chars // 3,
+            "total_messages": len(all_msgs),
+            "user_messages": user_msgs,
+            "assistant_messages": assistant_msgs,
+            "system_messages": system_msgs,
+            "llm": "gemini-2.5-flash",
+            "stt": "Deepgram Nova-2",
+            "tts": "Edge TTS" if data.get("tts_type") == "edge" else "Deepgram Aura-2",
+        },
+    })
 
 
 @app.get("/api/ice-servers")

@@ -16,638 +16,638 @@
             background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            padding: 30px 16px;
             color: #fff;
         }
 
-        .container {
+        /* ---- Main Call Card ---- */
+        .card {
             width: 100%;
             max-width: 480px;
-            padding: 20px;
-        }
-
-        .card {
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(20px);
             border-radius: 24px;
             border: 1px solid rgba(255, 255, 255, 0.12);
-            padding: 40px 30px;
+            padding: 36px 28px 28px;
             text-align: center;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
 
-        .logo {
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #7c83ff;
-            margin-bottom: 8px;
-        }
-
-        .title {
-            font-size: 26px;
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
-
-        .subtitle {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 36px;
-        }
+        .logo { font-size: 13px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: #7c83ff; margin-bottom: 6px; }
+        .title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 28px; }
 
         .avatar-ring {
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            margin: 0 auto 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            background: rgba(124, 131, 255, 0.1);
-            border: 3px solid rgba(124, 131, 255, 0.3);
+            width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 24px;
+            display: flex; align-items: center; justify-content: center; position: relative;
+            background: rgba(124,131,255,0.1); border: 3px solid rgba(124,131,255,0.3);
             transition: all 0.4s ease;
         }
+        .avatar-ring.active { border-color: #4ade80; background: rgba(74,222,128,0.1); animation: pulse-active 2s ease-in-out infinite; }
+        .avatar-ring.connecting { border-color: #fbbf24; background: rgba(251,191,36,0.1); animation: pulse-ring 1s ease-in-out infinite; }
+        @keyframes pulse-ring { 0%,100%{box-shadow:0 0 0 0 rgba(124,131,255,0.3)} 50%{box-shadow:0 0 0 15px rgba(124,131,255,0)} }
+        @keyframes pulse-active { 0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,0.3)} 50%{box-shadow:0 0 0 15px rgba(74,222,128,0)} }
+        .avatar-icon { font-size: 48px; }
 
-        .avatar-ring.active {
-            border-color: #4ade80;
-            background: rgba(74, 222, 128, 0.1);
-            animation: pulse-ring 2s ease-in-out infinite;
+        .visualizer { display:flex; align-items:center; justify-content:center; gap:3px; height:28px; margin-bottom:14px; visibility:hidden; }
+        .visualizer.active { visibility:visible; }
+        .visualizer .bar { width:4px; height:6px; background:#4ade80; border-radius:2px; animation:sound-wave 0.8s ease-in-out infinite; }
+        .visualizer .bar:nth-child(1){animation-delay:0s} .visualizer .bar:nth-child(2){animation-delay:.1s}
+        .visualizer .bar:nth-child(3){animation-delay:.2s} .visualizer .bar:nth-child(4){animation-delay:.3s}
+        .visualizer .bar:nth-child(5){animation-delay:.4s} .visualizer .bar:nth-child(6){animation-delay:.3s}
+        .visualizer .bar:nth-child(7){animation-delay:.2s}
+        @keyframes sound-wave { 0%,100%{height:6px} 50%{height:24px} }
+
+        .status-badge { display:inline-flex; align-items:center; gap:8px; padding:7px 16px; border-radius:30px; font-size:12px; font-weight:500; margin-bottom:24px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); }
+        .status-dot { width:8px; height:8px; border-radius:50%; background:#6b7280; }
+        .status-dot.ready { background:#7c83ff; }
+        .status-dot.active { background:#4ade80; animation:blink 1.2s ease-in-out infinite; }
+        .status-dot.connecting { background:#fbbf24; animation:blink .6s ease-in-out infinite; }
+        .status-dot.error { background:#f87171; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        .call-buttons { display:flex; gap:18px; justify-content:center; margin-bottom:10px; }
+        .call-group { display:flex; flex-direction:column; align-items:center; gap:6px; }
+        .call-btn {
+            width:62px; height:62px; border-radius:50%; border:none; cursor:pointer;
+            font-size:24px; display:flex; align-items:center; justify-content:center;
+            transition: all 0.3s ease;
+        }
+        .call-btn.start-deepgram { background:linear-gradient(135deg,#4ade80,#22c55e); color:#fff; box-shadow:0 8px 25px rgba(74,222,128,0.35); }
+        .call-btn.start-deepgram:hover { transform:scale(1.08); }
+        .call-btn.start-edge { background:linear-gradient(135deg,#818cf8,#6366f1); color:#fff; box-shadow:0 8px 25px rgba(129,140,248,0.35); }
+        .call-btn.start-edge:hover { transform:scale(1.08); }
+        .call-btn.end { background:linear-gradient(135deg,#f87171,#ef4444); color:#fff; box-shadow:0 8px 25px rgba(248,113,113,0.35); }
+        .call-btn.end:hover { transform:scale(1.08); }
+        .call-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none !important; }
+        .call-btn-label { font-size:10px; font-weight:600; color:rgba(255,255,255,0.45); }
+        .btn-label { font-size:12px; color:rgba(255,255,255,0.45); margin-bottom:16px; }
+
+        .timer { font-size:32px; font-weight:300; font-variant-numeric:tabular-nums; letter-spacing:2px; margin-bottom:6px; color:rgba(255,255,255,0.8); display:none; }
+        .timer.visible { display:block; }
+
+        .lang-info { margin-top:16px; padding:10px; border-radius:12px; background:rgba(124,131,255,0.08); border:1px solid rgba(124,131,255,0.15); font-size:11px; color:rgba(255,255,255,0.5); }
+        .lang-tags { display:flex; gap:6px; justify-content:center; margin-top:6px; }
+        .lang-tag { padding:3px 10px; border-radius:20px; background:rgba(124,131,255,0.15); font-size:10px; font-weight:600; color:#a5b4fc; }
+
+        /* ---- Dashboard (visible during call) ---- */
+        .dashboard {
+            width: 100%;
+            max-width: 820px;
+            margin-top: 20px;
+            display: none;
+            animation: slideUp 0.4s ease-out;
+        }
+        .dashboard.visible { display: block; }
+        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+        .dash-panel {
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 20px;
+            margin-bottom: 14px;
+        }
+        .dash-title {
+            font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+            color: rgba(255,255,255,0.4); margin-bottom: 16px;
         }
 
-        .avatar-ring.connecting {
-            border-color: #fbbf24;
-            background: rgba(251, 191, 36, 0.1);
-            animation: pulse-ring 1s ease-in-out infinite;
-        }
-
-        @keyframes pulse-ring {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(124, 131, 255, 0.3); }
-            50% { box-shadow: 0 0 0 15px rgba(124, 131, 255, 0); }
-        }
-
-        .avatar-ring.active {
-            animation-name: pulse-active;
-        }
-
-        @keyframes pulse-active {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.3); }
-            50% { box-shadow: 0 0 0 15px rgba(74, 222, 128, 0); }
-        }
-
-        .avatar-icon {
-            font-size: 56px;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 18px;
-            border-radius: 30px;
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 30px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #6b7280;
-        }
-
-        .status-dot.ready { background: #7c83ff; }
-        .status-dot.active { background: #4ade80; animation: blink 1.2s ease-in-out infinite; }
-        .status-dot.connecting { background: #fbbf24; animation: blink 0.6s ease-in-out infinite; }
-        .status-dot.error { background: #f87171; }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .call-buttons {
+        /* ---- Flow Pipeline ---- */
+        .flow-pipeline {
             display: flex;
-            gap: 20px;
+            align-items: center;
             justify-content: center;
-            margin-bottom: 12px;
+            gap: 0;
+            padding: 8px 0;
+            overflow-x: auto;
         }
-
-        .call-group {
+        .flow-node {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
-        }
-
-        .call-btn {
-            width: 68px;
-            height: 68px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 26px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
+            min-width: 72px;
             position: relative;
         }
-
-        .call-btn.start-deepgram {
-            background: linear-gradient(135deg, #4ade80, #22c55e);
-            color: #fff;
-            box-shadow: 0 8px 30px rgba(74, 222, 128, 0.35);
+        .flow-dot {
+            width: 14px; height: 14px; border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: all 0.4s ease;
+            position: relative;
+            z-index: 1;
         }
-
-        .call-btn.start-deepgram:hover {
-            transform: scale(1.08);
-            box-shadow: 0 10px 40px rgba(74, 222, 128, 0.5);
-        }
-
-        .call-btn.start-edge {
-            background: linear-gradient(135deg, #818cf8, #6366f1);
-            color: #fff;
-            box-shadow: 0 8px 30px rgba(129, 140, 248, 0.35);
-        }
-
-        .call-btn.start-edge:hover {
-            transform: scale(1.08);
-            box-shadow: 0 10px 40px rgba(129, 140, 248, 0.5);
-        }
-
-        .call-btn.end {
-            background: linear-gradient(135deg, #f87171, #ef4444);
-            color: #fff;
-            box-shadow: 0 8px 30px rgba(248, 113, 113, 0.35);
-        }
-
-        .call-btn.end:hover {
-            transform: scale(1.08);
-            box-shadow: 0 10px 40px rgba(248, 113, 113, 0.5);
-        }
-
-        .call-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .call-btn-label {
-            font-size: 11px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .btn-label {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 24px;
-        }
-
-        .timer {
-            font-size: 36px;
-            font-weight: 300;
-            font-variant-numeric: tabular-nums;
-            letter-spacing: 2px;
-            margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.8);
-            display: none;
-        }
-
-        .timer.visible { display: block; }
-
-        .transcript-box {
-            margin-top: 24px;
-            background: rgba(0, 0, 0, 0.25);
-            border-radius: 16px;
-            padding: 16px;
-            max-height: 200px;
-            overflow-y: auto;
-            text-align: left;
-            font-size: 13px;
-            line-height: 1.6;
-            display: none;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .transcript-box.visible { display: block; }
-
-        .transcript-box .line {
-            margin-bottom: 8px;
-            padding: 6px 10px;
-            border-radius: 8px;
-        }
-
-        .transcript-box .agent {
-            background: rgba(124, 131, 255, 0.12);
-            color: #c4c7ff;
-        }
-
-        .transcript-box .user {
-            background: rgba(74, 222, 128, 0.1);
-            color: #a7f3d0;
-        }
-
-        .transcript-box .label {
-            font-weight: 600;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-right: 6px;
-        }
-
-        .lang-info {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 12px;
-            background: rgba(124, 131, 255, 0.08);
-            border: 1px solid rgba(124, 131, 255, 0.15);
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .lang-tags {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin-top: 8px;
-        }
-
-        .lang-tag {
-            padding: 4px 12px;
-            border-radius: 20px;
-            background: rgba(124, 131, 255, 0.15);
-            font-size: 11px;
-            font-weight: 600;
-            color: #a5b4fc;
-        }
-
-        .visualizer {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            height: 30px;
-            margin-bottom: 16px;
-            visibility: hidden;
-        }
-
-        .visualizer.active { visibility: visible; }
-
-        .visualizer .bar {
-            width: 4px;
-            height: 6px;
+        .flow-dot.completed {
             background: #4ade80;
-            border-radius: 2px;
-            animation: sound-wave 0.8s ease-in-out infinite;
+            border-color: #4ade80;
+            box-shadow: 0 0 8px rgba(74,222,128,0.4);
+        }
+        .flow-dot.completed::after {
+            content: '';
+            position: absolute; top: 3px; left: 3px;
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #fff;
+        }
+        .flow-dot.current {
+            background: #7c83ff;
+            border-color: #7c83ff;
+            box-shadow: 0 0 12px rgba(124,131,255,0.6);
+            animation: dot-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes dot-pulse {
+            0%,100% { box-shadow: 0 0 8px rgba(124,131,255,0.4); }
+            50% { box-shadow: 0 0 20px rgba(124,131,255,0.8); }
+        }
+        .flow-label {
+            font-size: 10px; font-weight: 600;
+            margin-top: 8px; color: rgba(255,255,255,0.3);
+            white-space: nowrap; transition: color 0.3s;
+        }
+        .flow-label.completed { color: #4ade80; }
+        .flow-label.current { color: #c4c7ff; }
+
+        .flow-connector {
+            width: 28px; height: 2px;
+            background: rgba(255,255,255,0.12);
+            margin-top: -18px;
+            transition: background 0.4s;
+        }
+        .flow-connector.done { background: #4ade80; }
+
+        /* ---- Dashboard Columns ---- */
+        .dash-columns {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 14px;
+        }
+        @media (max-width: 700px) {
+            .dash-columns { grid-template-columns: 1fr; }
         }
 
-        .visualizer .bar:nth-child(1) { animation-delay: 0s; }
-        .visualizer .bar:nth-child(2) { animation-delay: 0.1s; }
-        .visualizer .bar:nth-child(3) { animation-delay: 0.2s; }
-        .visualizer .bar:nth-child(4) { animation-delay: 0.3s; }
-        .visualizer .bar:nth-child(5) { animation-delay: 0.4s; }
-        .visualizer .bar:nth-child(6) { animation-delay: 0.3s; }
-        .visualizer .bar:nth-child(7) { animation-delay: 0.2s; }
-
-        @keyframes sound-wave {
-            0%, 100% { height: 6px; }
-            50% { height: 26px; }
+        /* ---- Transcript ---- */
+        .transcript {
+            max-height: 320px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
         }
+        .transcript::-webkit-scrollbar { width: 4px; }
+        .transcript::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+        .t-msg {
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+        .t-msg.assistant { background: rgba(124,131,255,0.12); }
+        .t-msg.user { background: rgba(74,222,128,0.1); }
+        .t-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; display: block; }
+        .t-label.assistant { color: #a5b4fc; }
+        .t-label.user { color: #6ee7b7; }
+        .t-text { color: rgba(255,255,255,0.85); }
+        .t-empty { color: rgba(255,255,255,0.25); font-size: 12px; font-style: italic; text-align: center; padding: 30px 0; }
+
+        /* ---- Sidebar Panels ---- */
+        .sidebar-section {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .sidebar-section:last-child { margin-bottom: 0; }
+        .ss-title {
+            font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+            color: rgba(255,255,255,0.35); margin-bottom: 10px;
+        }
+        .ss-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 4px 0; font-size: 12px;
+        }
+        .ss-key { color: rgba(255,255,255,0.5); }
+        .ss-val { color: rgba(255,255,255,0.85); font-weight: 600; font-variant-numeric: tabular-nums; }
+        .ss-val.mono { font-family: 'Consolas', 'Courier New', monospace; font-size: 11px; }
+
+        .conn-dot {
+            display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px;
+        }
+        .conn-dot.ok { background: #4ade80; }
+        .conn-dot.warn { background: #fbbf24; }
+        .conn-dot.off { background: #6b7280; }
+        .conn-dot.err { background: #f87171; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="logo">QuickFinance Ltd.</div>
-            <div class="title">Loan Collection Agent</div>
-            <div class="subtitle">AI-Powered Voice Assistant</div>
 
-            <div class="avatar-ring" id="avatarRing">
-                <span class="avatar-icon">🎧</span>
+    <!-- Main Call Card -->
+    <div class="card">
+        <div class="logo">QuickFinance Ltd.</div>
+        <div class="title">Loan Collection Agent</div>
+        <div class="subtitle">AI-Powered Voice Assistant</div>
+
+        <div class="avatar-ring" id="avatarRing">
+            <span class="avatar-icon">&#127911;</span>
+        </div>
+
+        <div class="visualizer" id="visualizer">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+
+        <div class="status-badge" id="statusBadge">
+            <span class="status-dot ready" id="statusDot"></span>
+            <span id="statusText">Ready to connect</span>
+        </div>
+
+        <div class="timer" id="timer">00:00</div>
+
+        <div class="call-buttons" id="callButtons">
+            <div class="call-group">
+                <button class="call-btn start-deepgram" id="btnDeepgram" onclick="startCall('deepgram')">&#128222;</button>
+                <span class="call-btn-label">Deepgram</span>
             </div>
-
-            <div class="visualizer" id="visualizer">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
+            <div class="call-group">
+                <button class="call-btn start-edge" id="btnEdge" onclick="startCall('edge')">&#128222;</button>
+                <span class="call-btn-label">Edge TTS</span>
             </div>
+        </div>
+        <button class="call-btn end" id="btnEnd" onclick="endCall()" style="display:none; margin:0 auto;">&#128245;</button>
+        <div class="btn-label" id="btnLabel">Choose a TTS engine to start</div>
 
-            <div class="status-badge" id="statusBadge">
-                <span class="status-dot ready" id="statusDot"></span>
-                <span id="statusText">Ready to connect</span>
+        <div class="lang-info">
+            Supports multilingual conversation
+            <div class="lang-tags">
+                <span class="lang-tag">Hindi</span>
+                <span class="lang-tag">English</span>
+                <span class="lang-tag">Hinglish</span>
             </div>
+        </div>
+    </div>
 
-            <div class="timer" id="timer">00:00</div>
+    <!-- Dashboard (appears during call) -->
+    <div class="dashboard" id="dashboard">
 
-            <div class="call-buttons" id="callButtons">
-                <div class="call-group">
-                    <button class="call-btn start-deepgram" id="btnDeepgram" onclick="startCall('deepgram')">📞</button>
-                    <span class="call-btn-label">Deepgram</span>
+        <!-- Flow Pipeline -->
+        <div class="dash-panel">
+            <div class="dash-title">Conversation Flow</div>
+            <div class="flow-pipeline" id="flowPipeline">
+                <!-- built dynamically by JS -->
+            </div>
+        </div>
+
+        <!-- Transcript + Sidebar -->
+        <div class="dash-columns">
+            <div class="dash-panel">
+                <div class="dash-title">Live Transcript</div>
+                <div class="transcript" id="transcriptBox">
+                    <div class="t-empty">Waiting for conversation to start...</div>
                 </div>
-                <div class="call-group">
-                    <button class="call-btn start-edge" id="btnEdge" onclick="startCall('edge')">📞</button>
-                    <span class="call-btn-label">Edge TTS</span>
-                </div>
             </div>
-            <button class="call-btn end" id="btnEnd" onclick="endCall()" style="display:none; margin: 0 auto;">📵</button>
-            <div class="btn-label" id="btnLabel">Choose a TTS engine to start</div>
-
-            <div class="transcript-box" id="transcript"></div>
-
-            <div class="lang-info">
-                Supports multilingual conversation
-                <div class="lang-tags">
-                    <span class="lang-tag">Hindi</span>
-                    <span class="lang-tag">English</span>
-                    <span class="lang-tag">Hinglish</span>
+            <div class="dash-panel" style="padding-bottom:10px;">
+                <!-- Metrics -->
+                <div class="sidebar-section">
+                    <div class="ss-title">API Metrics</div>
+                    <div class="ss-row"><span class="ss-key">LLM</span><span class="ss-val" id="mLlm">-</span></div>
+                    <div class="ss-row"><span class="ss-key">STT</span><span class="ss-val" id="mStt">-</span></div>
+                    <div class="ss-row"><span class="ss-key">TTS</span><span class="ss-val" id="mTts">-</span></div>
+                    <div class="ss-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;">
+                        <span class="ss-key">Est. Tokens</span><span class="ss-val" id="mTokens">0</span></div>
+                    <div class="ss-row"><span class="ss-key">Messages</span><span class="ss-val" id="mMsgs">0</span></div>
+                    <div class="ss-row"><span class="ss-key">User Turns</span><span class="ss-val" id="mUser">0</span></div>
+                    <div class="ss-row"><span class="ss-key">Agent Turns</span><span class="ss-val" id="mAssist">0</span></div>
+                    <div class="ss-row"><span class="ss-key">System Msgs</span><span class="ss-val" id="mSystem">0</span></div>
+                </div>
+                <!-- Connection Console -->
+                <div class="sidebar-section">
+                    <div class="ss-title">Connection</div>
+                    <div class="ss-row"><span class="ss-key">Mic</span><span class="ss-val" id="cMic"><span class="conn-dot off"></span>-</span></div>
+                    <div class="ss-row"><span class="ss-key">WebRTC</span><span class="ss-val" id="cWebrtc"><span class="conn-dot off"></span>-</span></div>
+                    <div class="ss-row"><span class="ss-key">Data Ch.</span><span class="ss-val" id="cDc"><span class="conn-dot off"></span>-</span></div>
+                    <div class="ss-row"><span class="ss-key">ICE</span><span class="ss-val mono" id="cIce">-</span></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        let pc = null;           // RTCPeerConnection
-        let dc = null;           // Data channel
-        let pingInterval = null; // Keep-alive ping interval
-        let pcId = null;         // Connection ID from server
-        let isConnected = false;
-        let timerInterval = null;
-        let seconds = 0;
+<script>
+    let pc = null;
+    let dc = null;
+    let pingInterval = null;
+    let pcId = null;
+    let isConnected = false;
+    let timerInterval = null;
+    let seconds = 0;
+    let dashPollInterval = null;
+    let lastTranscriptLen = 0;
 
-        const btnDeepgram = document.getElementById('btnDeepgram');
-        const btnEdge = document.getElementById('btnEdge');
-        const btnEnd = document.getElementById('btnEnd');
-        const callButtons = document.getElementById('callButtons');
-        const btnLabel = document.getElementById('btnLabel');
-        const statusText = document.getElementById('statusText');
-        const statusDot = document.getElementById('statusDot');
-        const avatarRing = document.getElementById('avatarRing');
-        const timerEl = document.getElementById('timer');
-        const visualizer = document.getElementById('visualizer');
-        const transcriptBox = document.getElementById('transcript');
+    const $ = id => document.getElementById(id);
+    const btnDeepgram = $('btnDeepgram'), btnEdge = $('btnEdge'), btnEnd = $('btnEnd');
+    const callButtons = $('callButtons'), btnLabel = $('btnLabel');
+    const statusText = $('statusText'), statusDot = $('statusDot'), avatarRing = $('avatarRing');
+    const timerEl = $('timer'), visualizer = $('visualizer');
+    const dashboard = $('dashboard'), flowPipeline = $('flowPipeline'), transcriptBox = $('transcriptBox');
 
-        function setStatus(state, text) {
-            statusText.textContent = text;
-            statusDot.className = 'status-dot ' + state;
-            avatarRing.className = 'avatar-ring ' + state;
-        }
+    /* ---- Status helpers ---- */
+    function setStatus(state, text) {
+        statusText.textContent = text;
+        statusDot.className = 'status-dot ' + state;
+        avatarRing.className = 'avatar-ring ' + state;
+    }
+    function startTimer() {
+        seconds = 0;
+        timerEl.classList.add('visible');
+        timerInterval = setInterval(() => {
+            seconds++;
+            const m = String(Math.floor(seconds / 60)).padStart(2,'0');
+            const s = String(seconds % 60).padStart(2,'0');
+            timerEl.textContent = m + ':' + s;
+        }, 1000);
+    }
+    function stopTimer() { clearInterval(timerInterval); timerEl.classList.remove('visible'); }
 
-        function startTimer() {
-            seconds = 0;
-            timerEl.classList.add('visible');
-            timerInterval = setInterval(() => {
-                seconds++;
-                const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-                const s = String(seconds % 60).padStart(2, '0');
-                timerEl.textContent = `${m}:${s}`;
-            }, 1000);
-        }
+    /* ---- Connection console ---- */
+    function connHtml(ok, label) {
+        const cls = ok === true ? 'ok' : ok === false ? 'err' : 'off';
+        return '<span class="conn-dot ' + cls + '"></span>' + label;
+    }
+    function updateConnConsole() {
+        const hasMic = pc && pc.getSenders().some(s => s.track && s.track.kind === 'audio' && s.track.readyState === 'live');
+        $('cMic').innerHTML = connHtml(hasMic, hasMic ? 'Active' : 'Off');
 
-        function stopTimer() {
-            clearInterval(timerInterval);
-            timerEl.classList.remove('visible');
-        }
+        const iceState = pc ? pc.iceConnectionState : '-';
+        const iceOk = iceState === 'connected' || iceState === 'completed';
+        $('cWebrtc').innerHTML = connHtml(pc ? iceOk : null, pc ? 'Connected' : 'None');
+        $('cIce').textContent = iceState;
 
-        async function startCall(ttsType) {
-            try {
-                btnDeepgram.disabled = true;
-                btnEdge.disabled = true;
-                setStatus('connecting', 'Connecting (' + ttsType + ')...');
-                btnLabel.textContent = 'Connecting...';
+        const dcOpen = dc && dc.readyState === 'open';
+        $('cDc').innerHTML = connHtml(dcOpen, dcOpen ? 'Open' : (dc ? dc.readyState : 'None'));
+    }
 
-                // Get user's microphone
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true,
-                        sampleRate: 16000
-                    }
-                });
-
-                // Fetch ICE servers (includes TURN if configured)
-                const iceServers = await fetch('/api/ice-servers').then(r => r.json());
-
-                // Create WebRTC peer connection
-                pc = new RTCPeerConnection({ iceServers });
-
-                // Create data channel BEFORE creating offer (required by pipecat SmallWebRTC)
-                dc = pc.createDataChannel('pipecat', { ordered: true });
-                dc.onopen = () => {
-                    console.log('Data channel open - starting pings');
-                    // Send keep-alive pings every 1 second (server expects within 3s)
-                    pingInterval = setInterval(() => {
-                        if (dc && dc.readyState === 'open') {
-                            dc.send('ping' + Date.now());
-                        }
-                    }, 1000);
-                };
-                dc.onmessage = (event) => {
-                    try {
-                        const msg = JSON.parse(event.data);
-                        // Handle renegotiation requests from server
-                        if (msg.type === 'signalling' && msg.message && msg.message.type === 'renegotiate') {
-                            handleRenegotiation(ttsType);
-                        } else if (msg.type === 'signalling' && msg.message && msg.message.type === 'peerLeft') {
-                            endCall();
-                        }
-                    } catch (e) {
-                        // Non-JSON message, ignore
-                    }
-                };
-                dc.onclose = () => {
-                    console.log('Data channel closed');
-                    clearInterval(pingInterval);
-                    pingInterval = null;
-                };
-
-                // Add audio track
-                stream.getTracks().forEach(track => pc.addTrack(track, stream));
-
-                // Handle incoming audio from the agent
-                const audioEl = new Audio();
-                audioEl.autoplay = true;
-                pc.ontrack = (event) => {
-                    audioEl.srcObject = event.streams[0];
-                };
-
-                pc.oniceconnectionstatechange = () => {
-                    console.log('ICE state:', pc.iceConnectionState);
-                    if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
-                        endCall();
-                    }
-                };
-
-                // Create and send offer
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-
-                // Wait for ICE gathering to complete
-                await new Promise((resolve) => {
-                    if (pc.iceGatheringState === 'complete') {
-                        resolve();
-                    } else {
-                        pc.onicegatheringstatechange = () => {
-                            if (pc.iceGatheringState === 'complete') resolve();
-                        };
-                        setTimeout(resolve, 5000);
-                    }
-                });
-
-                // Send offer to server
-                const response = await fetch('/api/offer', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sdp: pc.localDescription.sdp,
-                        type: pc.localDescription.type,
-                        pc_id: pcId,
-                        tts_type: ttsType,
-                    }),
-                });
-
-                if (!response.ok) throw new Error('Server error: ' + response.status);
-
-                const data = await response.json();
-                pcId = data.pc_id;
-
-                // Set remote description
-                await pc.setRemoteDescription({
-                    type: data.type || 'answer',
-                    sdp: data.sdp,
-                });
-
-                isConnected = true;
-                setStatus('active', 'Call in progress (' + ttsType + ')');
-                callButtons.style.display = 'none';
-                btnEnd.style.display = 'flex';
-                btnLabel.textContent = 'Tap to end call';
-                visualizer.classList.add('active');
-                transcriptBox.classList.add('visible');
-                startTimer();
-
-            } catch (err) {
-                console.error('Call failed:', err);
-                setStatus('error', 'Connection failed - check console');
-                btnDeepgram.disabled = false;
-                btnEdge.disabled = false;
-                btnLabel.textContent = 'Tap to retry';
+    /* ---- Flow Pipeline Rendering ---- */
+    let flowNodes = [];
+    function buildPipeline(nodes) {
+        flowNodes = nodes;
+        flowPipeline.innerHTML = '';
+        nodes.forEach((n, i) => {
+            if (i > 0) {
+                const conn = document.createElement('div');
+                conn.className = 'flow-connector';
+                conn.id = 'fc-' + i;
+                flowPipeline.appendChild(conn);
             }
+            const wrap = document.createElement('div');
+            wrap.className = 'flow-node';
+            wrap.innerHTML = '<div class="flow-dot" id="fd-' + n.id + '"></div><div class="flow-label" id="fl-' + n.id + '">' + n.label + '</div>';
+            flowPipeline.appendChild(wrap);
+        });
+    }
+    function updatePipeline(currentNode) {
+        let passedCurrent = false;
+        flowNodes.forEach((n, i) => {
+            const dot = $('fd-' + n.id);
+            const label = $('fl-' + n.id);
+            if (!dot) return;
+
+            dot.className = 'flow-dot';
+            label.className = 'flow-label';
+
+            if (n.id === currentNode) {
+                dot.classList.add('current');
+                label.classList.add('current');
+                passedCurrent = true;
+            } else if (!passedCurrent) {
+                dot.classList.add('completed');
+                label.classList.add('completed');
+            }
+
+            // connectors
+            if (i > 0) {
+                const fc = $('fc-' + i);
+                if (fc) fc.className = passedCurrent && n.id !== currentNode ? 'flow-connector' : (dot.classList.contains('completed') || dot.classList.contains('current') ? 'flow-connector done' : 'flow-connector');
+            }
+        });
+        // fix connector logic: done for all connectors up to and including current
+        let reachedCurrent = false;
+        flowNodes.forEach((n, i) => {
+            if (i > 0) {
+                const fc = $('fc-' + i);
+                if (fc) fc.className = reachedCurrent ? 'flow-connector' : 'flow-connector done';
+            }
+            if (n.id === currentNode) reachedCurrent = true;
+        });
+    }
+
+    /* ---- Transcript Rendering ---- */
+    function renderTranscript(messages) {
+        if (!messages || messages.length === 0) {
+            if (lastTranscriptLen === 0) return;
+            transcriptBox.innerHTML = '<div class="t-empty">Waiting for conversation to start...</div>';
+            lastTranscriptLen = 0;
+            return;
         }
+        if (messages.length === lastTranscriptLen) return;
+        lastTranscriptLen = messages.length;
 
-        async function handleRenegotiation(ttsType) {
-            if (!pc || !pcId) return;
+        let html = '';
+        messages.forEach(m => {
+            const cls = m.role === 'assistant' ? 'assistant' : 'user';
+            const lbl = m.role === 'assistant' ? 'Priya (Agent)' : 'Rajesh (User)';
+            html += '<div class="t-msg ' + cls + '"><span class="t-label ' + cls + '">' + lbl + '</span><span class="t-text">' + escHtml(m.text) + '</span></div>';
+        });
+        transcriptBox.innerHTML = html;
+        transcriptBox.scrollTop = transcriptBox.scrollHeight;
+    }
+    function escHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+    /* ---- Metrics Rendering ---- */
+    function renderMetrics(m) {
+        if (!m) return;
+        $('mLlm').textContent = m.llm || '-';
+        $('mStt').textContent = m.stt || '-';
+        $('mTts').textContent = m.tts || '-';
+        $('mTokens').textContent = (m.est_tokens || 0).toLocaleString();
+        $('mMsgs').textContent = m.total_messages || 0;
+        $('mUser').textContent = m.user_messages || 0;
+        $('mAssist').textContent = m.assistant_messages || 0;
+        $('mSystem').textContent = m.system_messages || 0;
+    }
+
+    /* ---- Dashboard Polling ---- */
+    function startDashPoll() {
+        dashPollInterval = setInterval(async () => {
+            if (!pcId) return;
             try {
-                console.log('Renegotiating...');
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
+                const r = await fetch('/api/session-data/' + pcId);
+                if (!r.ok) return;
+                const d = await r.json();
+                if (d.nodes && d.nodes.length && flowPipeline.children.length === 0) buildPipeline(d.nodes);
+                if (d.current_node) updatePipeline(d.current_node);
+                renderTranscript(d.transcript);
+                renderMetrics(d.metrics);
+            } catch(e) {}
+            updateConnConsole();
+        }, 1800);
+    }
+    function stopDashPoll() { clearInterval(dashPollInterval); dashPollInterval = null; }
 
-                await new Promise((resolve) => {
-                    if (pc.iceGatheringState === 'complete') resolve();
-                    else {
-                        pc.onicegatheringstatechange = () => {
-                            if (pc.iceGatheringState === 'complete') resolve();
-                        };
-                        setTimeout(resolve, 5000);
-                    }
-                });
+    /* ---- WebRTC Call Logic ---- */
+    async function startCall(ttsType) {
+        try {
+            btnDeepgram.disabled = true;
+            btnEdge.disabled = true;
+            setStatus('connecting', 'Connecting (' + ttsType + ')...');
+            btnLabel.textContent = 'Connecting...';
 
-                const response = await fetch('/api/offer', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sdp: pc.localDescription.sdp,
-                        type: pc.localDescription.type,
-                        pc_id: pcId,
-                        tts_type: ttsType,
-                    }),
-                });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true, sampleRate:16000 }
+            });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
-                    console.log('Renegotiation complete');
+            const iceServers = await fetch('/api/ice-servers').then(r => r.json());
+            pc = new RTCPeerConnection({ iceServers });
+
+            dc = pc.createDataChannel('pipecat', { ordered: true });
+            dc.onopen = () => {
+                pingInterval = setInterval(() => {
+                    if (dc && dc.readyState === 'open') dc.send('ping' + Date.now());
+                }, 1000);
+            };
+            dc.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'signalling' && msg.message && msg.message.type === 'renegotiate') handleRenegotiation(ttsType);
+                    else if (msg.type === 'signalling' && msg.message && msg.message.type === 'peerLeft') endCall();
+                } catch(e) {}
+            };
+            dc.onclose = () => { clearInterval(pingInterval); pingInterval = null; };
+
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+            const audioEl = new Audio();
+            audioEl.autoplay = true;
+            pc.ontrack = (event) => { audioEl.srcObject = event.streams[0]; };
+            pc.oniceconnectionstatechange = () => {
+                if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') endCall();
+                updateConnConsole();
+            };
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            await new Promise((resolve) => {
+                if (pc.iceGatheringState === 'complete') resolve();
+                else {
+                    pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') resolve(); };
+                    setTimeout(resolve, 5000);
                 }
-            } catch (e) {
-                console.warn('Renegotiation failed:', e);
-            }
-        }
+            });
 
-        async function endCall() {
-            if (!isConnected && !pc) return;
+            const response = await fetch('/api/offer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type, pc_id: pcId, tts_type: ttsType }),
+            });
+            if (!response.ok) throw new Error('Server error: ' + response.status);
 
-            // Stop pings
-            if (pingInterval) {
-                clearInterval(pingInterval);
-                pingInterval = null;
-            }
+            const data = await response.json();
+            pcId = data.pc_id;
 
-            // Close data channel
-            if (dc) {
-                dc.close();
-                dc = null;
-            }
+            await pc.setRemoteDescription({ type: data.type || 'answer', sdp: data.sdp });
 
-            try {
-                // Notify server
-                if (pcId) {
-                    await fetch('/api/disconnect', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ pc_id: pcId }),
-                    });
-                }
-            } catch (e) {
-                console.warn('Disconnect notify failed:', e);
-            }
+            isConnected = true;
+            setStatus('active', 'Call in progress (' + ttsType + ')');
+            callButtons.style.display = 'none';
+            btnEnd.style.display = 'flex';
+            btnLabel.textContent = 'Tap to end call';
+            visualizer.classList.add('active');
+            startTimer();
 
-            // Cleanup WebRTC
-            if (pc) {
-                pc.getSenders().forEach(sender => {
-                    if (sender.track) sender.track.stop();
-                });
-                pc.close();
-                pc = null;
-            }
+            // Show dashboard
+            dashboard.classList.add('visible');
+            lastTranscriptLen = 0;
+            startDashPoll();
+            updateConnConsole();
 
-            pcId = null;
-            isConnected = false;
-            stopTimer();
-
-            setStatus('ready', 'Call ended');
-            callButtons.style.display = 'flex';
-            btnEnd.style.display = 'none';
+        } catch (err) {
+            console.error('Call failed:', err);
+            setStatus('error', 'Connection failed - check console');
             btnDeepgram.disabled = false;
             btnEdge.disabled = false;
-            btnLabel.textContent = 'Choose a TTS engine to start';
-            visualizer.classList.remove('active');
+            btnLabel.textContent = 'Tap to retry';
+        }
+    }
+
+    async function handleRenegotiation(ttsType) {
+        if (!pc || !pcId) return;
+        try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            await new Promise((resolve) => {
+                if (pc.iceGatheringState === 'complete') resolve();
+                else {
+                    pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') resolve(); };
+                    setTimeout(resolve, 5000);
+                }
+            });
+            const response = await fetch('/api/offer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type, pc_id: pcId, tts_type: ttsType }),
+            });
+            if (response.ok) {
+                const data = await response.json();
+                await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
+            }
+        } catch (e) { console.warn('Renegotiation failed:', e); }
+    }
+
+    async function endCall() {
+        if (!isConnected && !pc) return;
+        stopDashPoll();
+
+        if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
+        if (dc) { dc.close(); dc = null; }
+
+        try {
+            if (pcId) await fetch('/api/disconnect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({pc_id:pcId}) });
+        } catch(e) {}
+
+        if (pc) {
+            pc.getSenders().forEach(s => { if (s.track) s.track.stop(); });
+            pc.close();
+            pc = null;
         }
 
-        // Check server health on load
-        fetch('/api/health')
-            .then(r => r.json())
-            .then(data => {
-                if (data.google_api === 'missing' || data.deepgram_api === 'missing') {
-                    setStatus('error', 'API keys not configured - check .env');
-                    btnLabel.textContent = 'Configure API keys first';
-                    callBtn.disabled = true;
-                }
-            })
-            .catch(() => {
-                setStatus('error', 'Server not reachable');
-            });
-    </script>
+        pcId = null;
+        isConnected = false;
+        stopTimer();
+
+        setStatus('ready', 'Call ended');
+        callButtons.style.display = 'flex';
+        btnEnd.style.display = 'none';
+        btnDeepgram.disabled = false;
+        btnEdge.disabled = false;
+        btnLabel.textContent = 'Choose a TTS engine to start';
+        visualizer.classList.remove('active');
+
+        // Keep dashboard visible briefly so user sees final state, then hide
+        setTimeout(() => { dashboard.classList.remove('visible'); flowPipeline.innerHTML = ''; }, 8000);
+    }
+
+    /* ---- Health check on load ---- */
+    fetch('/api/health').then(r => r.json()).then(data => {
+        if (data.google_api === 'missing' || data.deepgram_api === 'missing') {
+            setStatus('error', 'API keys not configured');
+            btnLabel.textContent = 'Configure API keys in .env';
+            btnDeepgram.disabled = true;
+            btnEdge.disabled = true;
+        }
+    }).catch(() => setStatus('error', 'Server not reachable'));
+</script>
 </body>
 </html>

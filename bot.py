@@ -3,13 +3,14 @@ Loan Collection Voice Agent - PipeCat Bot Pipeline with Flows
 =============================================================
 A structured loan collection conversation using Pipecat Flows.
 Demonstrates: greeting → identity check → overdue info → understand situation
-→ payment options → commitment → close.
+→ payment options → commitment → promise to pay → close.
 
 Uses: Deepgram STT | Google Gemini LLM | Deepgram/Edge TTS | WebRTC Transport
 """
 
 import os
 import sys
+import time
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -67,6 +68,30 @@ BORROWER_INFO = (
     "Last Payment: Nov 28, 2024"
 )
 
+# ---------------------------------------------------------------------------
+# Flow state + session tracking — exposed to server.py for dashboard API
+# ---------------------------------------------------------------------------
+FLOW_NODES = [
+    {"id": "greeting", "label": "Greeting"},
+    {"id": "overdue_info", "label": "Overdue Info"},
+    {"id": "understand_situation", "label": "Situation"},
+    {"id": "payment_options", "label": "Options"},
+    {"id": "commitment", "label": "Commitment"},
+    {"id": "promise_to_pay", "label": "PTP"},
+    {"id": "end", "label": "Complete"},
+]
+
+# pc_id -> {current_node, metrics, start_time, tts_type, _context}
+session_data: dict = {}
+
+
+def _track_node(flow_manager: FlowManager, node_name: str):
+    """Update the current flow node for the visualization dashboard."""
+    pc_id = flow_manager.state.get("pc_id", "")
+    if pc_id and pc_id in session_data:
+        session_data[pc_id]["current_node"] = node_name
+        logger.info(f"Flow tracker: {node_name}")
+
 
 # ---------------------------------------------------------------------------
 # Flow Node Definitions
@@ -79,13 +104,13 @@ def create_greeting_node() -> NodeConfig:
         args: FlowArgs, flow_manager: FlowManager
     ) -> tuple:
         flow_manager.state["identity_confirmed"] = True
-        logger.info("Flow: identity confirmed")
+        _track_node(flow_manager, "overdue_info")
         return "Identity confirmed as Rajesh Kumar", create_overdue_info_node()
 
     async def wrong_person(
         args: FlowArgs, flow_manager: FlowManager
     ) -> tuple:
-        logger.info("Flow: wrong person")
+        _track_node(flow_manager, "end")
         return "Wrong person on the line", create_wrong_person_end_node()
 
     return NodeConfig(
@@ -129,7 +154,7 @@ def create_overdue_info_node() -> NodeConfig:
     async def borrower_responds(
         args: FlowArgs, flow_manager: FlowManager
     ) -> tuple:
-        logger.info("Flow: borrower responded to overdue info")
+        _track_node(flow_manager, "understand_situation")
         return "Borrower acknowledged overdue information", create_situation_node()
 
     return NodeConfig(
@@ -171,7 +196,7 @@ def create_situation_node() -> NodeConfig:
     ) -> tuple:
         reason = args.get("reason", "not specified")
         flow_manager.state["reason"] = reason
-        logger.info(f"Flow: reason recorded — {reason}")
+        _track_node(flow_manager, "payment_options")
         return f"Borrower's reason for delay: {reason}", create_payment_options_node()
 
     return NodeConfig(
@@ -213,28 +238,28 @@ def create_payment_options_node() -> NodeConfig:
         args: FlowArgs, flow_manager: FlowManager
     ) -> tuple:
         flow_manager.state["plan"] = "Full payment of Rs. 17,000"
-        logger.info("Flow: full payment selected")
+        _track_node(flow_manager, "commitment")
         return "Full payment of Rs. 17,000 selected", create_commitment_node()
 
     async def select_split_payment(
         args: FlowArgs, flow_manager: FlowManager
     ) -> tuple:
         flow_manager.state["plan"] = "Rs. 8,500 now + Rs. 8,500 in 15 days"
-        logger.info("Flow: split payment selected")
+        _track_node(flow_manager, "commitment")
         return "Split payment plan selected", create_commitment_node()
 
     async def select_partial_plan(
         args: FlowArgs, flow_manager: FlowManager
     ) -> tuple:
         flow_manager.state["plan"] = "Rs. 5,000 now + remaining in 2 installments"
-        logger.info("Flow: partial plan selected")
+        _track_node(flow_manager, "commitment")
         return "Partial payment plan selected", create_commitment_node()
 
     async def request_callback(
         args: FlowArgs, flow_manager: FlowManager
     ) -> tuple:
         flow_manager.state["plan"] = "Callback requested"
-        logger.info("Flow: callback requested")
+        _track_node(flow_manager, "end")
         return "Senior representative callback requested", create_callback_end_node()
 
     return NodeConfig(
@@ -297,8 +322,8 @@ def create_commitment_node() -> NodeConfig:
         date = args.get("payment_date", "not specified")
         flow_manager.state["payment_date"] = date
         plan = flow_manager.state.get("plan", "")
-        logger.info(f"Flow: commitment — {plan} by {date}")
-        return f"Payment committed: {plan} by {date}", create_end_node()
+        _track_node(flow_manager, "promise_to_pay")
+        return f"Payment commitment: {plan} by {date}", create_promise_to_pay_node()
 
     return NodeConfig(
         name="commitment",
@@ -331,6 +356,59 @@ def create_commitment_node() -> NodeConfig:
     )
 
 
+def create_promise_to_pay_node() -> NodeConfig:
+    """Node 6: Formal Promise to Pay (PTP) confirmation."""
+
+    async def confirm_ptp(
+        args: FlowArgs, flow_manager: FlowManager
+    ) -> tuple:
+        plan = flow_manager.state.get("plan", "")
+        date = flow_manager.state.get("payment_date", "")
+        logger.info(f"Flow: PTP confirmed — {plan} by {date}")
+        _track_node(flow_manager, "end")
+        return f"PTP confirmed: {plan} by {date}", create_end_node()
+
+    async def revise_plan(
+        args: FlowArgs, flow_manager: FlowManager
+    ) -> tuple:
+        _track_node(flow_manager, "payment_options")
+        return "Borrower wants to revise the plan", create_payment_options_node()
+
+    return NodeConfig(
+        name="promise_to_pay",
+        task_messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Formally confirm the Promise to Pay. Summarize the commitment clearly. "
+                    "Say something like: "
+                    '"Rajesh ji, toh main confirm kar rahi hoon — aap [plan details] '
+                    "[date] tak kar denge. Kya aap is commitment ko confirm karte hain? "
+                    'Yeh aapka Promise to Pay hoga."\n\n'
+                    "If they confirm, use confirm_ptp. "
+                    "If they want to change, use revise_plan."
+                ),
+            }
+        ],
+        functions=[
+            FlowsFunctionSchema(
+                name="confirm_ptp",
+                handler=confirm_ptp,
+                description="Borrower formally confirms their Promise to Pay commitment",
+                properties={},
+                required=[],
+            ),
+            FlowsFunctionSchema(
+                name="revise_plan",
+                handler=revise_plan,
+                description="Borrower wants to go back and choose a different payment plan",
+                properties={},
+                required=[],
+            ),
+        ],
+    )
+
+
 def create_end_node() -> NodeConfig:
     """Final node: Thank the borrower and close."""
     return NodeConfig(
@@ -341,7 +419,7 @@ def create_end_node() -> NodeConfig:
                 "content": (
                     "Thank the borrower warmly and close the call. Summarize their commitment. "
                     "Say something like: "
-                    '"Bahut bahut dhanyavaad Rajesh ji! Main aapka commitment note kar rahi hoon. '
+                    '"Bahut bahut dhanyavaad Rajesh ji! Main aapka Promise to Pay note kar rahi hoon. '
                     "Agar koi bhi help chahiye toh QuickFinance ka helpline number hai aapke paas. "
                     'Aapka din shubh ho!"\n\n'
                     "Be warm, professional, and end on a positive note."
@@ -467,15 +545,26 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, tts_type: str = "dee
         transport=transport,
     )
 
+    # --- Session tracking for the dashboard API ---
+    pc_id = webrtc_connection.pc_id
+    session_data[pc_id] = {
+        "current_node": "greeting",
+        "start_time": time.time(),
+        "tts_type": tts_type,
+        "_context": context,   # reference for live transcript
+    }
+
     # --- Event handlers ---
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
         logger.info(f"Client connected: {client}")
+        flow_manager.state["pc_id"] = pc_id
         await flow_manager.initialize(create_greeting_node())
 
     @transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport, client):
         logger.info(f"Client disconnected: {client}")
+        session_data.pop(pc_id, None)
         await task.queue_frames([EndFrame()])
 
     # --- Run ---

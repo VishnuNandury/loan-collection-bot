@@ -185,88 +185,182 @@ async def webrtc_disconnect(request: Request):
 #         },
 #     })
 
-@app.get("/api/session-data/{pc_id}")  
-async def get_session_data(pc_id: str):  
-    """  
-    Return session data for the dashboard:  
-    - transcript  
-    - current flow node  
-    - flow pipeline structure  
-    - metrics  
-    """  
-    session = session_data.get(pc_id)  
-    if not session:  
-        return {"error": "Session not found"}  
+# @app.get("/api/session-data/{pc_id}")  
+# async def get_session_data(pc_id: str):  
+#     """  
+#     Return session data for the dashboard:  
+#     - transcript  
+#     - current flow node  
+#     - flow pipeline structure  
+#     - metrics  
+#     """  
+#     session = session_data.get(pc_id)  
+#     if not session:  
+#         return {"error": "Session not found"}  
   
-    transcript = session.get("transcript", [])  
-    current_node = session.get("current_node", "")  
-    nodes = session.get("nodes", [])  
+#     transcript = session.get("transcript", [])  
+#     current_node = session.get("current_node", "")  
+#     nodes = session.get("nodes", [])  
   
-    # Metrics calculation  
-    metrics = {}  
-    try:  
-        agg = session.get("context_aggregator")  
-        if agg and hasattr(agg, "get_messages_for_persistent_storage"):  
-            all_msgs = agg.get_messages_for_persistent_storage()  
+#     # Metrics calculation  
+#     metrics = {}  
+#     try:  
+#         agg = session.get("context_aggregator")  
+#         if agg and hasattr(agg, "get_messages_for_persistent_storage"):  
+#             all_msgs = agg.get_messages_for_persistent_storage()  
               
-            # ⚠️ FIX: Handle both dict and Pydantic Content objects  
-            def get_role(msg):  
-                if isinstance(msg, dict):  
-                    return msg.get("role")  
-                else:  
-                    # It's a Pydantic Content object from Google  
-                    return getattr(msg, "role", None)  
+#             # ⚠️ FIX: Handle both dict and Pydantic Content objects  
+#             def get_role(msg):  
+#                 if isinstance(msg, dict):  
+#                     return msg.get("role")  
+#                 else:  
+#                     # It's a Pydantic Content object from Google  
+#                     return getattr(msg, "role", None)  
               
-            def get_parts(msg):  
-                if isinstance(msg, dict):  
-                    return msg.get("parts", [])  
-                else:  
-                    return getattr(msg, "parts", [])  
+#             def get_parts(msg):  
+#                 if isinstance(msg, dict):  
+#                     return msg.get("parts", [])  
+#                 else:  
+#                     return getattr(msg, "parts", [])  
               
-            user_msgs = sum(1 for m in all_msgs if get_role(m) == "user")  
-            assistant_msgs = sum(1 for m in all_msgs if get_role(m) == "model")  
-            system_msgs = sum(1 for m in all_msgs if get_role(m) == "system")  
+#             user_msgs = sum(1 for m in all_msgs if get_role(m) == "user")  
+#             assistant_msgs = sum(1 for m in all_msgs if get_role(m) == "model")  
+#             system_msgs = sum(1 for m in all_msgs if get_role(m) == "system")  
               
-            # Estimate tokens (rough approximation)  
-            total_text = ""  
-            for m in all_msgs:  
-                parts = get_parts(m)  
-                for part in parts:  
-                    if isinstance(part, dict):  
-                        total_text += part.get("text", "")  
-                    else:  
-                        total_text += getattr(part, "text", "")  
+#             # Estimate tokens (rough approximation)  
+#             total_text = ""  
+#             for m in all_msgs:  
+#                 parts = get_parts(m)  
+#                 for part in parts:  
+#                     if isinstance(part, dict):  
+#                         total_text += part.get("text", "")  
+#                     else:  
+#                         total_text += getattr(part, "text", "")  
               
-            est_tokens = len(total_text.split())  
+#             est_tokens = len(total_text.split())  
   
-            metrics = {  
-                "llm": "Google Gemini",  
-                "stt": "Deepgram",  
-                "tts": "Edge TTS",  
-                "total_messages": len(all_msgs),  
-                "user_messages": user_msgs,  
-                "assistant_messages": assistant_msgs,  
-                "system_messages": system_msgs,  
-                "est_tokens": est_tokens  
-            }  
-    except Exception as e:  
-        logger.error(f"Error calculating metrics: {e}")  
-        metrics = {  
-            "llm": "Google Gemini",  
-            "stt": "Deepgram",  
-            "tts": "Edge TTS",  
-            "total_messages": 0,  
-            "user_messages": 0,  
-            "assistant_messages": 0,  
-            "system_messages": 0,  
-            "est_tokens": 0  
-        }  
+#             metrics = {  
+#                 "llm": "Google Gemini",  
+#                 "stt": "Deepgram",  
+#                 "tts": "Edge TTS",  
+#                 "total_messages": len(all_msgs),  
+#                 "user_messages": user_msgs,  
+#                 "assistant_messages": assistant_msgs,  
+#                 "system_messages": system_msgs,  
+#                 "est_tokens": est_tokens  
+#             }  
+#     except Exception as e:  
+#         logger.error(f"Error calculating metrics: {e}")  
+#         metrics = {  
+#             "llm": "Google Gemini",  
+#             "stt": "Deepgram",  
+#             "tts": "Edge TTS",  
+#             "total_messages": 0,  
+#             "user_messages": 0,  
+#             "assistant_messages": 0,  
+#             "system_messages": 0,  
+#             "est_tokens": 0  
+#         }  
   
-    return {  
-        "transcript": transcript,  
-        "current_node": current_node,  
-        "nodes": nodes,  
-        "metrics": metrics  
+#     return {  
+#         "transcript": transcript,  
+#         "current_node": current_node,  
+#         "nodes": nodes,  
+#         "metrics": metrics  
+#     }
+
+@app.get("/api/session-data/{pc_id}")
+async def get_session_data(pc_id: str):
+    """
+    Return session data for the dashboard:
+    - transcript
+    - current flow node
+    - flow pipeline structure
+    - metrics
+    """
+    session = session_data.get(pc_id)
+    if not session:
+        return {"error": "Session not found"}
+
+    transcript = session.get("transcript", [])
+    current_node = session.get("current_node", "")
+    
+    # ✅ FIX: Build the nodes array from your flow config
+    nodes = [
+        {"id": "greeting", "label": "Greeting", "type": "start"},
+        {"id": "overdue_info", "label": "Overdue Info", "type": "process"},
+        {"id": "payment_discussion", "label": "Payment Discussion", "type": "process"},
+        {"id": "promise_to_pay", "label": "Promise to Pay", "type": "process"},
+        {"id": "partial_payment", "label": "Partial Payment", "type": "process"},
+        {"id": "cannot_pay", "label": "Cannot Pay", "type": "process"},
+        {"id": "escalation", "label": "Escalation", "type": "process"},
+        {"id": "closing", "label": "Closing", "type": "end"}
+    ]
+
+    # Metrics calculation
+    metrics = {}
+    try:
+        agg = session.get("context_aggregator")
+        if agg and hasattr(agg, "get_messages_for_persistent_storage"):
+            all_msgs = agg.get_messages_for_persistent_storage()
+            
+            # ⚠️ Handle both dict and Pydantic Content objects
+            def get_role(msg):
+                if isinstance(msg, dict):
+                    return msg.get("role")
+                else:
+                    return getattr(msg, "role", None)
+            
+            def get_parts(msg):
+                if isinstance(msg, dict):
+                    return msg.get("parts", [])
+                else:
+                    return getattr(msg, "parts", [])
+            
+            user_msgs = sum(1 for m in all_msgs if get_role(m) == "user")
+            assistant_msgs = sum(1 for m in all_msgs if get_role(m) == "model")
+            system_msgs = sum(1 for m in all_msgs if get_role(m) == "system")
+            
+            # Estimate tokens
+            total_text = ""
+            for m in all_msgs:
+                parts = get_parts(m)
+                for part in parts:
+                    if isinstance(part, dict):
+                        total_text += part.get("text", "")
+                    else:
+                        total_text += getattr(part, "text", "")
+            
+            est_tokens = len(total_text.split())
+
+            metrics = {
+                "llm": "Google Gemini",
+                "stt": "Deepgram",
+                "tts": "Edge TTS",
+                "total_messages": len(all_msgs),
+                "user_messages": user_msgs,
+                "assistant_messages": assistant_msgs,
+                "system_messages": system_msgs,
+                "est_tokens": est_tokens
+            }
+    except Exception as e:
+        logger.error(f"Error calculating metrics: {e}")
+        metrics = {
+            "llm": "Google Gemini",
+            "stt": "Deepgram",
+            "tts": "Edge TTS",
+            "total_messages": 0,
+            "user_messages": 0,
+            "assistant_messages": 0,
+            "system_messages": 0,
+            "est_tokens": 0
+        }
+
+    return {
+        "transcript": transcript,
+        "current_node": current_node,
+        "nodes": nodes,
+        "metrics": metrics
     }
 
 @app.get("/api/ice-servers")

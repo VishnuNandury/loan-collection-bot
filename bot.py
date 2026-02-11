@@ -1122,41 +1122,76 @@ def create_callback_end_node() -> NodeConfig:
 # Enhanced Transcript Capture using Context Aggregator Events
 # ---------------------------------------------------------------------------
 
-class TranscriptMonitor(FrameProcessor):
-    """Monitor frames and capture transcripts for the dashboard."""
+# class TranscriptMonitor(FrameProcessor):
+#     """Monitor frames and capture transcripts for the dashboard."""
 
+#     def __init__(self, pc_id: str):
+#         super().__init__()
+#         self._pc_id = pc_id
+#         self._assistant_buffer = ""
+#         self._capturing_assistant = False
+
+#     async def process_frame(self, frame, direction):
+#         await super().process_frame(frame, direction)
+        
+#         # Capture user transcriptions
+#         if isinstance(frame, TranscriptionFrame) and frame.text:
+#             text = frame.text.strip()
+#             if text:
+#                 _add_transcript(self._pc_id, "user", text)
+        
+#         # Capture assistant responses
+#         elif isinstance(frame, LLMFullResponseStartFrame):
+#             self._assistant_buffer = ""
+#             self._capturing_assistant = True
+        
+#         elif isinstance(frame, TextFrame) and self._capturing_assistant:
+#             if not isinstance(frame, TranscriptionFrame) and frame.text:
+#                 self._assistant_buffer += frame.text
+        
+#         elif isinstance(frame, LLMFullResponseEndFrame):
+#             if self._assistant_buffer.strip():
+#                 _add_transcript(self._pc_id, "assistant", self._assistant_buffer.strip())
+#             self._assistant_buffer = ""
+#             self._capturing_assistant = False
+        
+#         await self.push_frame(frame, direction)
+
+class TranscriptMonitor(FrameProcessor):
+    """Monitors and captures transcripts from both user and assistant."""
+    
     def __init__(self, pc_id: str):
         super().__init__()
         self._pc_id = pc_id
         self._assistant_buffer = ""
-        self._capturing_assistant = False
-
-    async def process_frame(self, frame, direction):
+        self._is_assistant_speaking = False
+    
+    async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
         
-        # Capture user transcriptions
-        if isinstance(frame, TranscriptionFrame) and frame.text:
+        # Capture user transcription
+        if isinstance(frame, TranscriptionFrame):
             text = frame.text.strip()
             if text:
                 _add_transcript(self._pc_id, "user", text)
         
-        # Capture assistant responses
+        # Detect assistant response start
         elif isinstance(frame, LLMFullResponseStartFrame):
+            self._is_assistant_speaking = True
             self._assistant_buffer = ""
-            self._capturing_assistant = True
         
-        elif isinstance(frame, TextFrame) and self._capturing_assistant:
-            if not isinstance(frame, TranscriptionFrame) and frame.text:
-                self._assistant_buffer += frame.text
+        # Buffer assistant text
+        elif isinstance(frame, TextFrame) and self._is_assistant_speaking:
+            self._assistant_buffer += frame.text
         
+        # Detect assistant response end and save transcript
         elif isinstance(frame, LLMFullResponseEndFrame):
             if self._assistant_buffer.strip():
                 _add_transcript(self._pc_id, "assistant", self._assistant_buffer.strip())
+            self._is_assistant_speaking = False
             self._assistant_buffer = ""
-            self._capturing_assistant = False
         
         await self.push_frame(frame, direction)
-
 
 # ---------------------------------------------------------------------------
 # Bot Pipeline

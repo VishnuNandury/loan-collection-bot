@@ -141,50 +141,133 @@ async def webrtc_disconnect(request: Request):
     return JSONResponse({"status": "not_found"}, status_code=404)
 
 
-@app.get("/api/session-data/{pc_id}")
-async def get_session_data(pc_id: str):
-    """Return live session data for the dashboard — flow state, transcript, metrics."""
-    data = session_data.get(pc_id)
-    if not data:
-        return JSONResponse({"current_node": "", "nodes": FLOW_NODES, "transcript": [], "metrics": {}})
+# @app.get("/api/session-data/{pc_id}")
+# async def get_session_data(pc_id: str):
+#     """Return live session data for the dashboard — flow state, transcript, metrics."""
+#     data = session_data.get(pc_id)
+#     if not data:
+#         return JSONResponse({"current_node": "", "nodes": FLOW_NODES, "transcript": [], "metrics": {}})
 
-    # Transcript from frame processors (real-time capture)
-    transcript = data.get("transcript", [])
+#     # Transcript from frame processors (real-time capture)
+#     transcript = data.get("transcript", [])
 
-    # Estimate token usage from context messages
-    ctx = data.get("_context")
-    all_msgs = []
-    if ctx:
-        try:
-            all_msgs = ctx.messages if hasattr(ctx, "messages") else []
-        except Exception:
-            pass
-    total_chars = 0
-    for m in all_msgs:
-        c = m.get("content", "") if isinstance(m, dict) else ""
-        if isinstance(c, str):
-            total_chars += len(c)
-    user_msgs = sum(1 for m in all_msgs if m.get("role") == "user")
-    assistant_msgs = sum(1 for m in all_msgs if m.get("role") == "assistant")
-    system_msgs = sum(1 for m in all_msgs if m.get("role") == "system")
+#     # Estimate token usage from context messages
+#     ctx = data.get("_context")
+#     all_msgs = []
+#     if ctx:
+#         try:
+#             all_msgs = ctx.messages if hasattr(ctx, "messages") else []
+#         except Exception:
+#             pass
+#     total_chars = 0
+#     for m in all_msgs:
+#         c = m.get("content", "") if isinstance(m, dict) else ""
+#         if isinstance(c, str):
+#             total_chars += len(c)
+#     user_msgs = sum(1 for m in all_msgs if m.get("role") == "user")
+#     assistant_msgs = sum(1 for m in all_msgs if m.get("role") == "assistant")
+#     system_msgs = sum(1 for m in all_msgs if m.get("role") == "system")
 
-    return JSONResponse({
-        "current_node": data.get("current_node", ""),
-        "nodes": FLOW_NODES,
-        "transcript": transcript,
-        "tts_type": data.get("tts_type", "deepgram"),
-        "metrics": {
-            "est_tokens": total_chars // 3,
-            "total_messages": len(all_msgs),
-            "user_messages": user_msgs,
-            "assistant_messages": assistant_msgs,
-            "system_messages": system_msgs,
-            "llm": "gemini-2.5-flash",
-            "stt": "Deepgram Nova-2",
-            "tts": "Edge TTS" if data.get("tts_type") == "edge" else "Deepgram Aura-2",
-        },
-    })
+#     return JSONResponse({
+#         "current_node": data.get("current_node", ""),
+#         "nodes": FLOW_NODES,
+#         "transcript": transcript,
+#         "tts_type": data.get("tts_type", "deepgram"),
+#         "metrics": {
+#             "est_tokens": total_chars // 3,
+#             "total_messages": len(all_msgs),
+#             "user_messages": user_msgs,
+#             "assistant_messages": assistant_msgs,
+#             "system_messages": system_msgs,
+#             "llm": "gemini-2.5-flash",
+#             "stt": "Deepgram Nova-2",
+#             "tts": "Edge TTS" if data.get("tts_type") == "edge" else "Deepgram Aura-2",
+#         },
+#     })
 
+@app.get("/api/session-data/{pc_id}")  
+async def get_session_data(pc_id: str):  
+    """  
+    Return session data for the dashboard:  
+    - transcript  
+    - current flow node  
+    - flow pipeline structure  
+    - metrics  
+    """  
+    session = session_data.get(pc_id)  
+    if not session:  
+        return {"error": "Session not found"}  
+  
+    transcript = session.get("transcript", [])  
+    current_node = session.get("current_node", "")  
+    nodes = session.get("nodes", [])  
+  
+    # Metrics calculation  
+    metrics = {}  
+    try:  
+        agg = session.get("context_aggregator")  
+        if agg and hasattr(agg, "get_messages_for_persistent_storage"):  
+            all_msgs = agg.get_messages_for_persistent_storage()  
+              
+            # ⚠️ FIX: Handle both dict and Pydantic Content objects  
+            def get_role(msg):  
+                if isinstance(msg, dict):  
+                    return msg.get("role")  
+                else:  
+                    # It's a Pydantic Content object from Google  
+                    return getattr(msg, "role", None)  
+              
+            def get_parts(msg):  
+                if isinstance(msg, dict):  
+                    return msg.get("parts", [])  
+                else:  
+                    return getattr(msg, "parts", [])  
+              
+            user_msgs = sum(1 for m in all_msgs if get_role(m) == "user")  
+            assistant_msgs = sum(1 for m in all_msgs if get_role(m) == "model")  
+            system_msgs = sum(1 for m in all_msgs if get_role(m) == "system")  
+              
+            # Estimate tokens (rough approximation)  
+            total_text = ""  
+            for m in all_msgs:  
+                parts = get_parts(m)  
+                for part in parts:  
+                    if isinstance(part, dict):  
+                        total_text += part.get("text", "")  
+                    else:  
+                        total_text += getattr(part, "text", "")  
+              
+            est_tokens = len(total_text.split())  
+  
+            metrics = {  
+                "llm": "Google Gemini",  
+                "stt": "Deepgram",  
+                "tts": "Edge TTS",  
+                "total_messages": len(all_msgs),  
+                "user_messages": user_msgs,  
+                "assistant_messages": assistant_msgs,  
+                "system_messages": system_msgs,  
+                "est_tokens": est_tokens  
+            }  
+    except Exception as e:  
+        logger.error(f"Error calculating metrics: {e}")  
+        metrics = {  
+            "llm": "Google Gemini",  
+            "stt": "Deepgram",  
+            "tts": "Edge TTS",  
+            "total_messages": 0,  
+            "user_messages": 0,  
+            "assistant_messages": 0,  
+            "system_messages": 0,  
+            "est_tokens": 0  
+        }  
+  
+    return {  
+        "transcript": transcript,  
+        "current_node": current_node,  
+        "nodes": nodes,  
+        "metrics": metrics  
+    }
 
 @app.get("/api/ice-servers")
 async def ice_servers():

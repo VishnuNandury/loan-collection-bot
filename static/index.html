@@ -335,7 +335,7 @@
         </div>
     </div>
 
-<script>
+<!-- <script>
     let pc = null;
     let dc = null;
     let pingInterval = null;
@@ -556,6 +556,324 @@
 
             const data = await response.json();
             pcId = data.pc_id;
+
+            await pc.setRemoteDescription({ type: data.type || 'answer', sdp: data.sdp });
+
+            isConnected = true;
+            setStatus('active', 'Call in progress (' + ttsType + ')');
+            callButtons.style.display = 'none';
+            btnEnd.style.display = 'flex';
+            btnLabel.textContent = 'Tap to end call';
+            visualizer.classList.add('active');
+            startTimer();
+
+            // Show dashboard
+            dashboard.classList.add('visible');
+            lastTranscriptLen = 0;
+            startDashPoll();
+            updateConnConsole();
+
+        } catch (err) {
+            console.error('Call failed:', err);
+            setStatus('error', 'Connection failed - check console');
+            btnDeepgram.disabled = false;
+            btnEdge.disabled = false;
+            btnLabel.textContent = 'Tap to retry';
+        }
+    }
+
+    async function handleRenegotiation(ttsType) {
+        if (!pc || !pcId) return;
+        try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            await new Promise((resolve) => {
+                if (pc.iceGatheringState === 'complete') resolve();
+                else {
+                    pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') resolve(); };
+                    setTimeout(resolve, 5000);
+                }
+            });
+            const response = await fetch('/api/offer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type, pc_id: pcId, tts_type: ttsType }),
+            });
+            if (response.ok) {
+                const data = await response.json();
+                await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
+            }
+        } catch (e) { console.warn('Renegotiation failed:', e); }
+    }
+
+    async function endCall() {
+        if (!isConnected && !pc) return;
+        stopDashPoll();
+
+        if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
+        if (dc) { dc.close(); dc = null; }
+
+        try {
+            if (pcId) await fetch('/api/disconnect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({pc_id:pcId}) });
+        } catch(e) {}
+
+        if (pc) {
+            pc.getSenders().forEach(s => { if (s.track) s.track.stop(); });
+            pc.close();
+            pc = null;
+        }
+
+        pcId = null;
+        isConnected = false;
+        stopTimer();
+
+        setStatus('ready', 'Call ended');
+        callButtons.style.display = 'flex';
+        btnEnd.style.display = 'none';
+        btnDeepgram.disabled = false;
+        btnEdge.disabled = false;
+        btnLabel.textContent = 'Choose a TTS engine to start';
+        visualizer.classList.remove('active');
+
+        // Keep dashboard visible briefly so user sees final state, then hide
+        setTimeout(() => { dashboard.classList.remove('visible'); flowPipeline.innerHTML = ''; }, 8000);
+    }
+
+    /* ---- Health check on load ---- */
+    fetch('/api/health').then(r => r.json()).then(data => {
+        if (data.google_api === 'missing' || data.deepgram_api === 'missing') {
+            setStatus('error', 'API keys not configured');
+            btnLabel.textContent = 'Configure API keys in .env';
+            btnDeepgram.disabled = true;
+            btnEdge.disabled = true;
+        }
+    }).catch(() => setStatus('error', 'Server not reachable'));
+</script> -->
+
+<!-- Replace the entire <script> section in your index.html with this: -->
+<script>
+    let pc = null;
+    let dc = null;
+    let pingInterval = null;
+    let pcId = null;  // ⚠️ Make sure this starts as null
+    let isConnected = false;
+    let timerInterval = null;
+    let seconds = 0;
+    let dashPollInterval = null;
+    let lastTranscriptLen = 0;
+
+    const $ = id => document.getElementById(id);
+    const btnDeepgram = $('btnDeepgram'), btnEdge = $('btnEdge'), btnEnd = $('btnEnd');
+    const callButtons = $('callButtons'), btnLabel = $('btnLabel');
+    const statusText = $('statusText'), statusDot = $('statusDot'), avatarRing = $('avatarRing');
+    const timerEl = $('timer'), visualizer = $('visualizer');
+    const dashboard = $('dashboard'), flowPipeline = $('flowPipeline'), transcriptBox = $('transcriptBox');
+
+    /* ---- Status helpers ---- */
+    function setStatus(state, text) {
+        statusText.textContent = text;
+        statusDot.className = 'status-dot ' + state;
+        avatarRing.className = 'avatar-ring ' + state;
+    }
+    function startTimer() {
+        seconds = 0;
+        timerEl.classList.add('visible');
+        timerInterval = setInterval(() => {
+            seconds++;
+            const m = String(Math.floor(seconds / 60)).padStart(2,'0');
+            const s = String(seconds % 60).padStart(2,'0');
+            timerEl.textContent = m + ':' + s;
+        }, 1000);
+    }
+    function stopTimer() { clearInterval(timerInterval); timerEl.classList.remove('visible'); }
+
+    /* ---- Connection console ---- */
+    function connHtml(ok, label) {
+        const cls = ok === true ? 'ok' : ok === false ? 'err' : 'off';
+        return '<span class="conn-dot ' + cls + '"></span>' + label;
+    }
+    function updateConnConsole() {
+        const hasMic = pc && pc.getSenders().some(s => s.track && s.track.kind === 'audio' && s.track.readyState === 'live');
+        $('cMic').innerHTML = connHtml(hasMic, hasMic ? 'Active' : 'Off');
+
+        const iceState = pc ? pc.iceConnectionState : '-';
+        const iceOk = iceState === 'connected' || iceState === 'completed';
+        $('cWebrtc').innerHTML = connHtml(pc ? iceOk : null, pc ? 'Connected' : 'None');
+        $('cIce').textContent = iceState;
+
+        const dcOpen = dc && dc.readyState === 'open';
+        $('cDc').innerHTML = connHtml(dcOpen, dcOpen ? 'Open' : (dc ? dc.readyState : 'None'));
+    }
+
+    /* ---- Flow Pipeline Rendering ---- */
+    let flowNodes = [];
+    function buildPipeline(nodes) {
+        flowNodes = nodes;
+        flowPipeline.innerHTML = '';
+        nodes.forEach((n, i) => {
+            if (i > 0) {
+                const conn = document.createElement('div');
+                conn.className = 'flow-connector';
+                conn.id = 'fc-' + i;
+                flowPipeline.appendChild(conn);
+            }
+            const wrap = document.createElement('div');
+            wrap.className = 'flow-node';
+            wrap.innerHTML = '<div class="flow-dot" id="fd-' + n.id + '"></div><div class="flow-label" id="fl-' + n.id + '">' + n.label + '</div>';
+            flowPipeline.appendChild(wrap);
+        });
+    }
+    function updatePipeline(currentNode) {
+        let reachedCurrent = false;
+        flowNodes.forEach((n, i) => {
+            const dot = $('fd-' + n.id);
+            const label = $('fl-' + n.id);
+            if (!dot) return;
+
+            dot.className = 'flow-dot';
+            label.className = 'flow-label';
+
+            if (n.id === currentNode) {
+                dot.classList.add('current');
+                label.classList.add('current');
+                reachedCurrent = true;
+            } else if (!reachedCurrent) {
+                dot.classList.add('completed');
+                label.classList.add('completed');
+            }
+
+            if (i > 0) {
+                const fc = $('fc-' + i);
+                if (fc) fc.className = reachedCurrent ? 'flow-connector' : 'flow-connector done';
+            }
+        });
+    }
+
+    /* ---- Transcript Rendering ---- */
+    function renderTranscript(messages) {
+        if (!messages || messages.length === 0) {
+            if (lastTranscriptLen === 0) return;
+            transcriptBox.innerHTML = '<div class="t-empty">Waiting for conversation to start...</div>';
+            lastTranscriptLen = 0;
+            return;
+        }
+        if (messages.length === lastTranscriptLen) return;
+        lastTranscriptLen = messages.length;
+
+        let html = '';
+        messages.forEach(m => {
+            const cls = m.role === 'assistant' ? 'assistant' : 'user';
+            const lbl = m.role === 'assistant' ? 'Priya (Agent)' : 'Rajesh (User)';
+            html += '<div class="t-msg ' + cls + '"><span class="t-label ' + cls + '">' + lbl + '</span><span class="t-text">' + escHtml(m.text) + '</span></div>';
+        });
+        transcriptBox.innerHTML = html;
+        transcriptBox.scrollTop = transcriptBox.scrollHeight;
+    }
+    function escHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+    /* ---- Metrics Rendering ---- */
+    function renderMetrics(m) {
+        if (!m) return;
+        $('mLlm').textContent = m.llm || '-';
+        $('mStt').textContent = m.stt || '-';
+        $('mTts').textContent = m.tts || '-';
+        $('mTokens').textContent = (m.est_tokens || 0).toLocaleString();
+        $('mMsgs').textContent = m.total_messages || 0;
+        $('mUser').textContent = m.user_messages || 0;
+        $('mAssist').textContent = m.assistant_messages || 0;
+        $('mSystem').textContent = m.system_messages || 0;
+    }
+
+    /* ---- Dashboard Polling ---- */
+    function startDashPoll() {
+        dashPollInterval = setInterval(async () => {
+            if (!pcId) {
+                console.warn('No pcId available for polling');
+                return;
+            }
+            try {
+                console.log('Polling session data for:', pcId);  // Debug log
+                const r = await fetch('/api/session-data/' + encodeURIComponent(pcId));
+                if (!r.ok) {
+                    console.error('Session data fetch failed:', r.status);
+                    return;
+                }
+                const d = await r.json();
+                console.log('Session data received:', d);  // Debug log
+                if (d.nodes && d.nodes.length && flowPipeline.children.length === 0) buildPipeline(d.nodes);
+                if (d.current_node) updatePipeline(d.current_node);
+                renderTranscript(d.transcript);
+                renderMetrics(d.metrics);
+            } catch(e) {
+                console.error('Dashboard poll error:', e);
+            }
+            updateConnConsole();
+        }, 1800);
+    }
+    function stopDashPoll() { clearInterval(dashPollInterval); dashPollInterval = null; }
+
+    /* ---- WebRTC Call Logic ---- */
+    async function startCall(ttsType) {
+        try {
+            btnDeepgram.disabled = true;
+            btnEdge.disabled = true;
+            setStatus('connecting', 'Connecting (' + ttsType + ')...');
+            btnLabel.textContent = 'Connecting...';
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true, sampleRate:16000 }
+            });
+
+            const iceServers = await fetch('/api/ice-servers').then(r => r.json());
+            pc = new RTCPeerConnection({ iceServers });
+
+            dc = pc.createDataChannel('pipecat', { ordered: true });
+            dc.onopen = () => {
+                pingInterval = setInterval(() => {
+                    if (dc && dc.readyState === 'open') dc.send('ping' + Date.now());
+                }, 1000);
+            };
+            dc.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'signalling' && msg.message && msg.message.type === 'renegotiate') handleRenegotiation(ttsType);
+                    else if (msg.type === 'signalling' && msg.message && msg.message.type === 'peerLeft') endCall();
+                } catch(e) {}
+            };
+            dc.onclose = () => { clearInterval(pingInterval); pingInterval = null; };
+
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+            const audioEl = new Audio();
+            audioEl.autoplay = true;
+            pc.ontrack = (event) => { audioEl.srcObject = event.streams[0]; };
+            pc.oniceconnectionstatechange = () => {
+                if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') endCall();
+                updateConnConsole();
+            };
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            await new Promise((resolve) => {
+                if (pc.iceGatheringState === 'complete') resolve();
+                else {
+                    pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') resolve(); };
+                    setTimeout(resolve, 5000);
+                }
+            });
+
+            const response = await fetch('/api/offer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type, pc_id: pcId, tts_type: ttsType }),
+            });
+            if (!response.ok) throw new Error('Server error: ' + response.status);
+
+            const data = await response.json();
+            pcId = data.pc_id;  // ⚠️ CRITICAL: Store the full pc_id from server
+
+            console.log('✅ Connected with pc_id:', pcId);  // Debug log
 
             await pc.setRemoteDescription({ type: data.type || 'answer', sdp: data.sdp });
 

@@ -34,7 +34,8 @@
       "WebFetch(domain:www.npmjs.com)",
       "WebFetch(domain:www.jsdelivr.com)",
       "Bash(pip install:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(pip show:*)"
     ]
   }
 }

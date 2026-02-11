@@ -18,7 +18,11 @@ from loguru import logger
 from deepgram import LiveOptions
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
-from pipecat.frames.frames import EndFrame
+from pipecat.frames.frames import (
+    EndFrame, TextFrame, TranscriptionFrame,
+    LLMFullResponseStartFrame, LLMFullResponseEndFrame,
+)
+from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
@@ -91,6 +95,52 @@ def _track_node(flow_manager: FlowManager, node_name: str):
     if pc_id and pc_id in session_data:
         session_data[pc_id]["current_node"] = node_name
         logger.info(f"Flow tracker: {node_name}")
+
+
+# ---------------------------------------------------------------------------
+# Transcript capture — frame processors for real-time user/assistant text
+# ---------------------------------------------------------------------------
+
+class UserTranscriptCapture(FrameProcessor):
+    """Capture final user speech transcriptions for the dashboard."""
+
+    def __init__(self, pc_id: str):
+        super().__init__()
+        self._pc_id = pc_id
+
+    async def process_frame(self, frame, direction):
+        await super().process_frame(frame, direction)
+        if isinstance(frame, TranscriptionFrame) and frame.text:
+            text = frame.text.strip()
+            if text and self._pc_id in session_data:
+                session_data[self._pc_id].setdefault("transcript", []).append(
+                    {"role": "user", "text": text}
+                )
+        await self.push_frame(frame, direction)
+
+
+class AssistantTranscriptCapture(FrameProcessor):
+    """Capture LLM response text for the dashboard."""
+
+    def __init__(self, pc_id: str):
+        super().__init__()
+        self._pc_id = pc_id
+        self._buffer = ""
+
+    async def process_frame(self, frame, direction):
+        await super().process_frame(frame, direction)
+        if isinstance(frame, LLMFullResponseStartFrame):
+            self._buffer = ""
+        elif isinstance(frame, TextFrame) and not isinstance(frame, TranscriptionFrame):
+            if frame.text:
+                self._buffer += frame.text
+        elif isinstance(frame, LLMFullResponseEndFrame):
+            if self._buffer.strip() and self._pc_id in session_data:
+                session_data[self._pc_id].setdefault("transcript", []).append(
+                    {"role": "assistant", "text": self._buffer.strip()}
+                )
+            self._buffer = ""
+        await self.push_frame(frame, direction)
 
 
 # ---------------------------------------------------------------------------
@@ -475,6 +525,8 @@ def create_callback_end_node() -> NodeConfig:
 async def run_bot(webrtc_connection: SmallWebRTCConnection, tts_type: str = "deepgram"):
     """Create and run the voice agent pipeline with Pipecat Flows."""
 
+    pc_id = webrtc_connection.pc_id
+
     # --- Transport (WebRTC) ---
     transport = SmallWebRTCTransport(
         webrtc_connection=webrtc_connection,
@@ -515,13 +567,19 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, tts_type: str = "dee
     context = OpenAILLMContext([])
     context_aggregator = llm.create_context_aggregator(context)
 
+    # --- Transcript capture processors ---
+    user_capture = UserTranscriptCapture(pc_id)
+    assistant_capture = AssistantTranscriptCapture(pc_id)
+
     # --- Pipeline ---
     pipeline = Pipeline(
         [
             transport.input(),
             stt,
+            user_capture,
             context_aggregator.user(),
             llm,
+            assistant_capture,
             tts,
             transport.output(),
             context_aggregator.assistant(),
@@ -546,12 +604,12 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, tts_type: str = "dee
     )
 
     # --- Session tracking for the dashboard API ---
-    pc_id = webrtc_connection.pc_id
     session_data[pc_id] = {
         "current_node": "greeting",
         "start_time": time.time(),
         "tts_type": tts_type,
-        "_context": context,   # reference for live transcript
+        "transcript": [],      # populated by frame processors
+        "_context": context,   # reference for metrics
     }
 
     # --- Event handlers ---

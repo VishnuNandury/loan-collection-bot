@@ -148,28 +148,22 @@ async def get_session_data(pc_id: str):
     if not data:
         return JSONResponse({"current_node": "", "nodes": FLOW_NODES, "transcript": [], "metrics": {}})
 
-    # Extract transcript from the live context messages
-    transcript = []
-    ctx = data.get("_context")
-    if ctx:
-        try:
-            messages = ctx.messages if hasattr(ctx, "messages") else []
-            for msg in messages:
-                role = msg.get("role", "")
-                content = msg.get("content", "")
-                if role in ("user", "assistant") and content:
-                    transcript.append({"role": role, "text": content})
-        except Exception:
-            pass
+    # Transcript from frame processors (real-time capture)
+    transcript = data.get("transcript", [])
 
     # Estimate token usage from context messages
+    ctx = data.get("_context")
     all_msgs = []
     if ctx:
         try:
             all_msgs = ctx.messages if hasattr(ctx, "messages") else []
         except Exception:
             pass
-    total_chars = sum(len(m.get("content", "")) for m in all_msgs)
+    total_chars = 0
+    for m in all_msgs:
+        c = m.get("content", "") if isinstance(m, dict) else ""
+        if isinstance(c, str):
+            total_chars += len(c)
     user_msgs = sum(1 for m in all_msgs if m.get("role") == "user")
     assistant_msgs = sum(1 for m in all_msgs if m.get("role") == "assistant")
     system_msgs = sum(1 for m in all_msgs if m.get("role") == "system")

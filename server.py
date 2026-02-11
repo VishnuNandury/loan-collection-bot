@@ -185,88 +185,98 @@ async def webrtc_disconnect(request: Request):
 #         },
 #     })
 
-# @app.get("/api/session-data/{pc_id}")  
-# async def get_session_data(pc_id: str):  
-#     """  
-#     Return session data for the dashboard:  
-#     - transcript  
-#     - current flow node  
-#     - flow pipeline structure  
-#     - metrics  
-#     """  
-#     session = session_data.get(pc_id)  
-#     if not session:  
-#         return {"error": "Session not found"}  
-  
-#     transcript = session.get("transcript", [])  
-#     current_node = session.get("current_node", "")  
-#     nodes = session.get("nodes", [])  
-  
-#     # Metrics calculation  
-#     metrics = {}  
-#     try:  
-#         agg = session.get("context_aggregator")  
-#         if agg and hasattr(agg, "get_messages_for_persistent_storage"):  
-#             all_msgs = agg.get_messages_for_persistent_storage()  
-              
-#             # ⚠️ FIX: Handle both dict and Pydantic Content objects  
-#             def get_role(msg):  
-#                 if isinstance(msg, dict):  
-#                     return msg.get("role")  
-#                 else:  
-#                     # It's a Pydantic Content object from Google  
-#                     return getattr(msg, "role", None)  
-              
-#             def get_parts(msg):  
-#                 if isinstance(msg, dict):  
-#                     return msg.get("parts", [])  
-#                 else:  
-#                     return getattr(msg, "parts", [])  
-              
-#             user_msgs = sum(1 for m in all_msgs if get_role(m) == "user")  
-#             assistant_msgs = sum(1 for m in all_msgs if get_role(m) == "model")  
-#             system_msgs = sum(1 for m in all_msgs if get_role(m) == "system")  
-              
-#             # Estimate tokens (rough approximation)  
-#             total_text = ""  
-#             for m in all_msgs:  
-#                 parts = get_parts(m)  
-#                 for part in parts:  
-#                     if isinstance(part, dict):  
-#                         total_text += part.get("text", "")  
-#                     else:  
-#                         total_text += getattr(part, "text", "")  
-              
-#             est_tokens = len(total_text.split())  
-  
-#             metrics = {  
-#                 "llm": "Google Gemini",  
-#                 "stt": "Deepgram",  
-#                 "tts": "Edge TTS",  
-#                 "total_messages": len(all_msgs),  
-#                 "user_messages": user_msgs,  
-#                 "assistant_messages": assistant_msgs,  
-#                 "system_messages": system_msgs,  
-#                 "est_tokens": est_tokens  
-#             }  
-#     except Exception as e:  
-#         logger.error(f"Error calculating metrics: {e}")  
-#         metrics = {  
-#             "llm": "Google Gemini",  
-#             "stt": "Deepgram",  
-#             "tts": "Edge TTS",  
-#             "total_messages": 0,  
-#             "user_messages": 0,  
-#             "assistant_messages": 0,  
-#             "system_messages": 0,  
-#             "est_tokens": 0  
-#         }  
-  
-#     return {  
-#         "transcript": transcript,  
-#         "current_node": current_node,  
-#         "nodes": nodes,  
-#         "metrics": metrics  
+# @app.get("/api/session-data/{pc_id}")
+# async def get_session_data(pc_id: str):
+#     """
+#     Return session data for the dashboard:
+#     - transcript
+#     - current flow node
+#     - flow pipeline structure
+#     - metrics
+#     """
+#     session = session_data.get(pc_id)
+#     if not session:
+#         return {"error": "Session not found"}
+
+#     transcript = session.get("transcript", [])
+#     current_node = session.get("current_node", "")
+    
+#     # ✅ FIX: Build the nodes array from your flow config
+#     nodes = [
+#         {"id": "greeting", "label": "Greeting", "type": "start"},
+#         {"id": "overdue_info", "label": "Overdue Info", "type": "process"},
+#         {"id": "payment_discussion", "label": "Payment Discussion", "type": "process"},
+#         {"id": "promise_to_pay", "label": "Promise to Pay", "type": "process"},
+#         {"id": "partial_payment", "label": "Partial Payment", "type": "process"},
+#         {"id": "cannot_pay", "label": "Cannot Pay", "type": "process"},
+#         {"id": "escalation", "label": "Escalation", "type": "process"},
+#         {"id": "closing", "label": "Closing", "type": "end"}
+#     ]
+
+#     # Metrics calculation
+#     metrics = {}
+#     try:
+#         agg = session.get("context_aggregator")
+#         if agg and hasattr(agg, "get_messages_for_persistent_storage"):
+#             all_msgs = agg.get_messages_for_persistent_storage()
+            
+#             # ⚠️ Handle both dict and Pydantic Content objects
+#             def get_role(msg):
+#                 if isinstance(msg, dict):
+#                     return msg.get("role")
+#                 else:
+#                     return getattr(msg, "role", None)
+            
+#             def get_parts(msg):
+#                 if isinstance(msg, dict):
+#                     return msg.get("parts", [])
+#                 else:
+#                     return getattr(msg, "parts", [])
+            
+#             user_msgs = sum(1 for m in all_msgs if get_role(m) == "user")
+#             assistant_msgs = sum(1 for m in all_msgs if get_role(m) == "model")
+#             system_msgs = sum(1 for m in all_msgs if get_role(m) == "system")
+            
+#             # Estimate tokens
+#             total_text = ""
+#             for m in all_msgs:
+#                 parts = get_parts(m)
+#                 for part in parts:
+#                     if isinstance(part, dict):
+#                         total_text += part.get("text", "")
+#                     else:
+#                         total_text += getattr(part, "text", "")
+            
+#             est_tokens = len(total_text.split())
+
+#             metrics = {
+#                 "llm": "Google Gemini",
+#                 "stt": "Deepgram",
+#                 "tts": "Edge TTS",
+#                 "total_messages": len(all_msgs),
+#                 "user_messages": user_msgs,
+#                 "assistant_messages": assistant_msgs,
+#                 "system_messages": system_msgs,
+#                 "est_tokens": est_tokens
+#             }
+#     except Exception as e:
+#         logger.error(f"Error calculating metrics: {e}")
+#         metrics = {
+#             "llm": "Google Gemini",
+#             "stt": "Deepgram",
+#             "tts": "Edge TTS",
+#             "total_messages": 0,
+#             "user_messages": 0,
+#             "assistant_messages": 0,
+#             "system_messages": 0,
+#             "est_tokens": 0
+#         }
+
+#     return {
+#         "transcript": transcript,
+#         "current_node": current_node,
+#         "nodes": nodes,
+#         "metrics": metrics
 #     }
 
 @app.get("/api/session-data/{pc_id}")
@@ -280,31 +290,47 @@ async def get_session_data(pc_id: str):
     """
     session = session_data.get(pc_id)
     if not session:
+        logger.warning(f"Session not found for pc_id: {pc_id}")
         return {"error": "Session not found"}
 
     transcript = session.get("transcript", [])
     current_node = session.get("current_node", "")
     
-    # ✅ FIX: Build the nodes array from your flow config
+    # Build the nodes array from your flow config
     nodes = [
         {"id": "greeting", "label": "Greeting", "type": "start"},
         {"id": "overdue_info", "label": "Overdue Info", "type": "process"},
-        {"id": "payment_discussion", "label": "Payment Discussion", "type": "process"},
-        {"id": "promise_to_pay", "label": "Promise to Pay", "type": "process"},
-        {"id": "partial_payment", "label": "Partial Payment", "type": "process"},
-        {"id": "cannot_pay", "label": "Cannot Pay", "type": "process"},
-        {"id": "escalation", "label": "Escalation", "type": "process"},
-        {"id": "closing", "label": "Closing", "type": "end"}
+        {"id": "understand_situation", "label": "Situation", "type": "process"},
+        {"id": "payment_options", "label": "Options", "type": "process"},
+        {"id": "commitment", "label": "Commitment", "type": "process"},
+        {"id": "promise_to_pay", "label": "PTP", "type": "process"},
+        {"id": "end", "label": "Complete", "type": "end"}
     ]
 
-    # Metrics calculation
-    metrics = {}
+    # Metrics calculation with better error handling
+    metrics = {
+        "llm": "Google Gemini 2.5 Flash",
+        "stt": "Deepgram Nova-2",
+        "tts": "Edge TTS (hi-IN-SwaraNeural)" if session.get("tts_type") == "edge" else "Deepgram Aura-2",
+        "total_messages": 0,
+        "user_messages": 0,
+        "assistant_messages": 0,
+        "system_messages": 0,
+        "est_tokens": 0
+    }
+    
     try:
         agg = session.get("context_aggregator")
-        if agg and hasattr(agg, "get_messages_for_persistent_storage"):
+        
+        if not agg:
+            logger.warning(f"No context_aggregator found for session {pc_id}")
+        elif not hasattr(agg, "get_messages_for_persistent_storage"):
+            logger.warning(f"context_aggregator doesn't have get_messages_for_persistent_storage method")
+        else:
             all_msgs = agg.get_messages_for_persistent_storage()
+            logger.debug(f"Retrieved {len(all_msgs)} messages from context aggregator for {pc_id}")
             
-            # ⚠️ Handle both dict and Pydantic Content objects
+            # Handle both dict and Pydantic Content objects
             def get_role(msg):
                 if isinstance(msg, dict):
                     return msg.get("role")
@@ -317,44 +343,55 @@ async def get_session_data(pc_id: str):
                 else:
                     return getattr(msg, "parts", [])
             
-            user_msgs = sum(1 for m in all_msgs if get_role(m) == "user")
-            assistant_msgs = sum(1 for m in all_msgs if get_role(m) == "model")
-            system_msgs = sum(1 for m in all_msgs if get_role(m) == "system")
+            def get_text_from_part(part):
+                """Extract text from various part formats."""
+                if isinstance(part, dict):
+                    return part.get("text", "")
+                elif isinstance(part, str):
+                    return part
+                else:
+                    # Pydantic object
+                    return getattr(part, "text", "")
             
-            # Estimate tokens
+            user_msgs = 0
+            assistant_msgs = 0
+            system_msgs = 0
             total_text = ""
+            
             for m in all_msgs:
+                role = get_role(m)
+                if role == "user":
+                    user_msgs += 1
+                elif role == "model":  # Google uses "model" instead of "assistant"
+                    assistant_msgs += 1
+                elif role == "system":
+                    system_msgs += 1
+                
+                # Extract text from parts
                 parts = get_parts(m)
                 for part in parts:
-                    if isinstance(part, dict):
-                        total_text += part.get("text", "")
-                    else:
-                        total_text += getattr(part, "text", "")
+                    text = get_text_from_part(part)
+                    total_text += text + " "
             
-            est_tokens = len(total_text.split())
-
+            # Token estimation: words * 1.3 (accounts for subword tokenization)
+            word_count = len(total_text.split())
+            est_tokens = int(word_count * 1.3)
+            
             metrics = {
-                "llm": "Google Gemini",
-                "stt": "Deepgram",
-                "tts": "Edge TTS",
+                "llm": "Google Gemini 2.5 Flash",
+                "stt": "Deepgram Nova-2",
+                "tts": "Edge TTS (hi-IN-SwaraNeural)" if session.get("tts_type") == "edge" else "Deepgram Aura-2",
                 "total_messages": len(all_msgs),
                 "user_messages": user_msgs,
                 "assistant_messages": assistant_msgs,
                 "system_messages": system_msgs,
                 "est_tokens": est_tokens
             }
+            
+            logger.debug(f"Metrics for {pc_id}: {metrics}")
+            
     except Exception as e:
-        logger.error(f"Error calculating metrics: {e}")
-        metrics = {
-            "llm": "Google Gemini",
-            "stt": "Deepgram",
-            "tts": "Edge TTS",
-            "total_messages": 0,
-            "user_messages": 0,
-            "assistant_messages": 0,
-            "system_messages": 0,
-            "est_tokens": 0
-        }
+        logger.error(f"Error calculating metrics for {pc_id}: {e}", exc_info=True)
 
     return {
         "transcript": transcript,

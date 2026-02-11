@@ -1157,6 +1157,42 @@ def create_callback_end_node() -> NodeConfig:
         
 #         await self.push_frame(frame, direction)
 
+# class TranscriptMonitor(FrameProcessor):
+#     """Monitors and captures transcripts from both user and assistant."""
+    
+#     def __init__(self, pc_id: str):
+#         super().__init__()
+#         self._pc_id = pc_id
+#         self._assistant_buffer = ""
+#         self._is_assistant_speaking = False
+    
+#     async def process_frame(self, frame: Frame, direction: FrameDirection):
+#         await super().process_frame(frame, direction)
+        
+#         # Capture user transcription
+#         if isinstance(frame, TranscriptionFrame):
+#             text = frame.text.strip()
+#             if text:
+#                 _add_transcript(self._pc_id, "user", text)
+        
+#         # Detect assistant response start
+#         elif isinstance(frame, LLMFullResponseStartFrame):
+#             self._is_assistant_speaking = True
+#             self._assistant_buffer = ""
+        
+#         # Buffer assistant text
+#         elif isinstance(frame, TextFrame) and self._is_assistant_speaking:
+#             self._assistant_buffer += frame.text
+        
+#         # Detect assistant response end and save transcript
+#         elif isinstance(frame, LLMFullResponseEndFrame):
+#             if self._assistant_buffer.strip():
+#                 _add_transcript(self._pc_id, "assistant", self._assistant_buffer.strip())
+#             self._is_assistant_speaking = False
+#             self._assistant_buffer = ""
+        
+#         await self.push_frame(frame, direction)
+
 class TranscriptMonitor(FrameProcessor):
     """Monitors and captures transcripts from both user and assistant."""
     
@@ -1174,20 +1210,24 @@ class TranscriptMonitor(FrameProcessor):
             text = frame.text.strip()
             if text:
                 _add_transcript(self._pc_id, "user", text)
+                logger.debug(f"📝 User transcript captured: {text[:50]}...")
         
         # Detect assistant response start
         elif isinstance(frame, LLMFullResponseStartFrame):
             self._is_assistant_speaking = True
             self._assistant_buffer = ""
+            logger.debug("🤖 Assistant started speaking")
         
-        # Buffer assistant text
+        # Buffer assistant text (exclude TranscriptionFrame to avoid capturing user speech)
         elif isinstance(frame, TextFrame) and self._is_assistant_speaking:
-            self._assistant_buffer += frame.text
+            if not isinstance(frame, TranscriptionFrame):  # Important: exclude user transcriptions
+                self._assistant_buffer += frame.text
         
         # Detect assistant response end and save transcript
         elif isinstance(frame, LLMFullResponseEndFrame):
             if self._assistant_buffer.strip():
                 _add_transcript(self._pc_id, "assistant", self._assistant_buffer.strip())
+                logger.debug(f"🤖 Assistant transcript captured: {self._assistant_buffer[:50]}...")
             self._is_assistant_speaking = False
             self._assistant_buffer = ""
         
@@ -1277,20 +1317,35 @@ async def run_bot(webrtc_connection: SmallWebRTCConnection, tts_type: str = "dee
     )
 
     # --- Session tracking for the dashboard API ---
-    session_data[pc_id] = {
-        "current_node": "greeting",
-        "start_time": time.time(),
-        "tts_type": tts_type,
-        "transcript": [],
-        "_context": context,
-        "_context_aggregator": context_aggregator,  # Keep reference for metrics
-    }
+    # session_data[pc_id] = {
+    #     "current_node": "greeting",
+    #     "start_time": time.time(),
+    #     "tts_type": tts_type,
+    #     "transcript": [],
+    #     "_context": context,
+    #     "_context_aggregator": context_aggregator,  # Keep reference for metrics
+    # }
 
-    # --- Event handlers ---
-    @transport.event_handler("on_client_connected")
-    async def on_client_connected(transport, client):
-        logger.info(f"Client connected: {client}")
-        flow_manager.state["pc_id"] = pc_id
+    # # --- Event handlers ---
+    # @transport.event_handler("on_client_connected")
+    # async def on_client_connected(transport, client):
+    #     logger.info(f"Client connected: {client}")
+    #     flow_manager.state["pc_id"] = pc_id
+    #     await flow_manager.initialize(create_greeting_node())
+    session_data[pc_id] = {  
+        "current_node": "greeting",  
+        "start_time": time.time(),  
+        "tts_type": tts_type,  
+        "transcript": [],  
+        "_context": context,  
+        "context_aggregator": context_aggregator,  # ✅ Store reference for metrics  
+    }  
+    
+    # --- Event handlers ---  
+    @transport.event_handler("on_client_connected")  
+    async def on_client_connected(transport, client):  
+        logger.info(f"Client connected: {client}")  
+        flow_manager.state["pc_id"] = pc_id  
         await flow_manager.initialize(create_greeting_node())
 
     @transport.event_handler("on_client_disconnected")

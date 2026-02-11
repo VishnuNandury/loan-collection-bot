@@ -655,7 +655,7 @@ from deepgram import LiveOptions
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.frames.frames import (
-    EndFrame, TextFrame, TranscriptionFrame,
+    EndFrame, TextFrame, TranscriptionFrame, Frame,
     LLMFullResponseStartFrame, LLMFullResponseEndFrame,
 )
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection
